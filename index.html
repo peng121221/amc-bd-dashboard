@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AMC雌马酚 · 达人BD商务后台</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#eef1f7; --card:#ffffff; --ink:#1f2733; --ink2:#5a6675; --ink3:#9aa6b6;
+  --line:#eaeef4; --primary:#3b6ff6; --primary-soft:#eaf1ff;
+  --gold:#c8a24c; --navy:#1f3b73;
+  --blue:#3b82f6; --purple:#8b5cf6; --teal:#14b8a6; --orange:#f59e0b; --indigo:#6366f1; --rose:#f43f5e; --green:#22c55e;
+  --shadow:0 1px 3px rgba(20,30,50,.06),0 6px 24px rgba(20,30,50,.05);
+  --radius:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,select,textarea{font-family:inherit;font-size:14px}
+a{color:inherit;text-decoration:none}
+.hidden{display:none!important}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#cfd6e2;border-radius:8px}
+
+/* ---------- LOGIN ---------- */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,#f3efe6 0%,#eaeef6 45%,#e7edf7 100%)}
+.login-card{width:400px;max-width:92vw;background:#fff;border-radius:20px;padding:38px 34px;box-shadow:0 20px 60px rgba(30,45,80,.16)}
+.login-brand{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:24px}
+.login-brand h1{font-size:20px;letter-spacing:.5px}
+.login-brand p{font-size:12px;color:var(--ink3);letter-spacing:3px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:12px;color:var(--ink2);margin-bottom:6px}
+.field input,.field select,.field textarea{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:10px;background:#fbfcfe;outline:none;transition:.15s}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--primary);background:#fff;box-shadow:0 0 0 3px var(--primary-soft)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:11px 18px;border-radius:10px;background:var(--primary);color:#fff;font-weight:600;transition:.15s;font-size:14px}
+.btn:hover{filter:brightness(1.05)}
+.btn.block{width:100%}
+.btn.ghost{background:var(--primary-soft);color:var(--primary)}
+.btn.gold{background:#b8893a}
+.btn.sm{padding:7px 12px;font-size:13px;border-radius:8px}
+.btn.line{background:#fff;border:1px solid var(--line);color:var(--ink2);font-weight:500}
+.login-switch{text-align:center;margin-top:16px;font-size:13px;color:var(--ink2)}
+.login-switch a{color:var(--primary);font-weight:600;cursor:pointer}
+.login-err{background:#fff1f2;color:#e11d48;font-size:12.5px;padding:9px 12px;border-radius:9px;margin-bottom:12px}
+.login-accounts{margin-top:18px;border-top:1px dashed var(--line);padding-top:14px;font-size:12px;color:var(--ink3);line-height:1.7}
+.login-accounts b{color:var(--ink2)}
+
+/* ---------- LOGO MARK ---------- */
+.logo-mark{width:40px;height:34px;flex:none}
+
+/* ---------- SHELL ---------- */
+#app{display:flex;min-height:100vh}
+.sidebar{width:212px;background:#fff;border-right:1px solid var(--line);display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:18px 18px 16px}
+.sb-brand .t1{font-size:15px;font-weight:700;line-height:1.1}
+.sb-brand .t2{font-size:10.5px;color:var(--ink3);letter-spacing:1px}
+.nav{flex:1;padding:6px 12px;overflow-y:auto}
+.nav a{display:flex;align-items:center;gap:11px;padding:10.5px 12px;border-radius:10px;color:var(--ink2);font-weight:500;margin-bottom:2px;position:relative;transition:.12s}
+.nav a svg{width:18px;height:18px;opacity:.8}
+.nav a:hover{background:#f5f7fb;color:var(--ink)}
+.nav a.active{background:var(--primary-soft);color:var(--primary);font-weight:600}
+.nav a.active svg{opacity:1}
+.sb-foot{padding:14px 18px;border-top:1px solid var(--line);font-size:12px;color:var(--ink3);display:flex;align-items:center;gap:8px;cursor:pointer}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{height:62px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px;position:sticky;top:0;z-index:20}
+.search{flex:1;max-width:430px;display:flex;align-items:center;gap:8px;background:#f3f5f9;border-radius:10px;padding:9px 13px;color:var(--ink3)}
+.search input{flex:1;border:none;background:none;outline:none;color:var(--ink)}
+.tb-pill{display:flex;align-items:center;gap:7px;background:#f3f5f9;border-radius:10px;padding:8px 13px;color:var(--ink2);font-size:13px}
+.tb-pill select{border:none;background:none;outline:none;color:var(--ink2)}
+.tb-spacer{flex:1}
+.bell{position:relative;width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink2);background:#f3f5f9}
+.bell .badge{position:absolute;top:-4px;right:-4px;background:var(--rose);color:#fff;font-size:10px;min-width:17px;height:17px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;font-weight:700}
+.me{display:flex;align-items:center;gap:9px}
+.me .nm{font-size:13px;font-weight:600;line-height:1.2}.me .rl{font-size:11px;color:var(--ink3)}
+.avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex:none}
+
+.content{padding:20px 22px 40px;flex:1}
+.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.page-head h2{font-size:18px}.page-head p{font-size:12.5px;color:var(--ink3);margin-top:3px}
+
+/* ---------- DASHBOARD ---------- */
+.cards{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:16px}
+.metric{background:#fff;border-radius:var(--radius);padding:16px 16px 15px;box-shadow:var(--shadow)}
+.metric .top{display:flex;justify-content:space-between;align-items:flex-start}
+.metric .label{font-size:12.5px;color:var(--ink2)}
+.metric .val{font-size:25px;font-weight:750;margin-top:9px;letter-spacing:.5px}
+.metric .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff}
+.metric .ic svg{width:21px;height:21px}
+.metric .delta{font-size:11.5px;margin-top:9px;color:var(--ink3)}
+.metric .delta b{font-weight:700}
+.up{color:var(--green)}.down{color:var(--rose)}
+
+.dash{display:grid;grid-template-columns:2fr 1.3fr 1.3fr;gap:14px}
+.panel{background:#fff;border-radius:var(--radius);padding:17px 18px;box-shadow:var(--shadow);min-width:0}
+.panel .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.panel .ph h3{font-size:15px}
+.panel .ph .more{font-size:12px;color:var(--ink3);cursor:pointer}
+.seg{display:inline-flex;background:#f3f5f9;border-radius:8px;padding:3px}
+.seg button{padding:5px 11px;border-radius:6px;font-size:12px;color:var(--ink2)}
+.seg button.on{background:#fff;color:var(--primary);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+
+.donut-wrap{display:flex;align-items:center;gap:12px}
+.donut-box{position:relative;width:140px;height:140px;flex:none}
+.donut-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.donut-center .a{font-size:11px;color:var(--ink3)}.donut-center .b{font-size:18px;font-weight:750}
+.legend{flex:1;display:flex;flex-direction:column;gap:9px}
+.legend .li{display:flex;align-items:center;gap:8px;font-size:12.5px}
+.legend .dot{width:9px;height:9px;border-radius:3px;flex:none}
+.legend .pn{flex:1;color:var(--ink2)}.legend .pv{font-weight:700;color:var(--ink)}
+
+.funnel{display:flex;flex-direction:column;gap:7px;align-items:center;padding-top:4px}
+.fn-row{width:100%;display:flex;align-items:center;gap:10px}
+.fn-bar{height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;transition:.4s;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.fn-side{width:74px;font-size:12px;color:var(--ink2);display:flex;justify-content:space-between}
+.fn-side b{color:var(--ink)}
+
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-size:12px;color:var(--ink3);font-weight:600;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 10px;border-bottom:1px solid var(--line);font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#fafbfd}
+.rank-badge{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.cell-bd{display:flex;align-items:center;gap:9px}
+.tag{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:600}
+.tag.b{background:#eaf1ff;color:#2563eb}.tag.g{background:#e9f9f0;color:#0f9d58}.tag.o{background:#fff4e5;color:#d97706}
+.tag.p{background:#f3ecff;color:#7c3aed}.tag.r{background:#ffecef;color:#e11d48}.tag.gray{background:#eef1f5;color:#64748b}.tag.t{background:#e6f7f4;color:#0d9488}
+.mini-spark{height:26px;width:80px}
+
+.feed{display:flex;flex-direction:column;gap:14px}
+.feed .it{display:flex;gap:11px;font-size:12.5px}
+.feed .tm{color:var(--ink3);flex:none;width:38px}
+.feed .dt2{width:8px;height:8px;border-radius:50%;margin-top:4px;flex:none}
+.feed .tx{color:var(--ink);line-height:1.5}.feed .tx b{font-weight:700}
+
+.product .pcard{display:flex;gap:13px}
+.product .pimg{width:74px;height:92px;border-radius:11px;background:linear-gradient(150deg,#f6f1e7,#eef2f8);flex:none;display:flex;align-items:center;justify-content:center;border:1px solid #efe9dd}
+.product .prow{display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.product .prow .k{color:var(--ink3)}.product .prow .v{font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+.chip{background:#f6f8fc;border:1px solid var(--line);color:var(--ink2);font-size:11.5px;padding:4px 10px;border-radius:20px}
+
+.pending{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.pend{border-radius:13px;padding:14px;display:flex;flex-direction:column;gap:6px}
+.pend .pl{font-size:12.5px;color:var(--ink2)}
+.pend .pv{font-size:24px;font-weight:750}
+.pend.b{background:#eef4ff}.pend.g{background:#eafaf1}.pend.o{background:#fff7ec}.pend.r{background:#fff0f3}
+
+.tips{background:linear-gradient(120deg,#fffaf0,#fff);border:1px solid #f3e9d2}
+.tips .ph h3{color:#b8893a}
+.tips p{font-size:13px;color:var(--ink2);line-height:1.85}
+
+/* ---------- TABLES / MODULES ---------- */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.toolbar .grow{flex:1}
+.tinput{padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:#fff;outline:none;min-width:150px}
+.tinput:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-soft)}
+.table-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.table-scroll{overflow-x:auto}
+.table-card .pad{padding:6px 16px}
+.pager{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.pager .pg{display:flex;gap:6px}
+.pager .pg button{width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;color:var(--ink2)}
+.pager .pg button:disabled{opacity:.4;cursor:not-allowed}
+.inline-select{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:#fff;font-size:12.5px;outline:none}
+.icon-btn{color:var(--ink3);padding:5px;border-radius:7px}.icon-btn:hover{background:#f0f3f8;color:var(--primary)}
+.empty{padding:50px;text-align:center;color:var(--ink3)}
+
+/* charts */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.chart-box{position:relative;height:280px}
+
+/* ---------- MODAL ---------- */
+.modal-bg{position:fixed;inset:0;background:rgba(20,28,45,.42);display:flex;align-items:center;justify-content:center;z-index:60;padding:20px}
+.modal{background:#fff;border-radius:18px;width:540px;max-width:96vw;max-height:90vh;overflow:auto;box-shadow:0 30px 80px rgba(20,30,60,.3)}
+.modal .mh{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff}
+.modal .mh h3{font-size:16px}
+.modal .mb{padding:20px 22px}
+.modal .mf{display:flex;justify-content:flex-end;gap:10px;padding:16px 22px;border-top:1px solid var(--line)}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.form-grid .full{grid-column:1/3}
+.x{font-size:20px;color:var(--ink3);line-height:1;padding:4px 8px;border-radius:8px}.x:hover{background:#f0f3f8}
+
+/* toast */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:#1f2733;color:#fff;padding:11px 20px;border-radius:11px;font-size:13.5px;box-shadow:0 10px 30px rgba(0,0,0,.2);animation:tin .25s}
+.toast.ok{background:#0f9d58}.toast.err{background:#e11d48}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.spin{width:34px;height:34px;border:3px solid var(--primary-soft);border-top-color:var(--primary);border-radius:50%;animation:sp 1s linear infinite;margin:60px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.clickable{cursor:pointer;user-select:none}
+.tb-date{position:relative}
+.date-panel{position:absolute;top:48px;left:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(20,30,60,.18);padding:14px;width:308px;z-index:60}
+.dp-title{font-size:12px;color:var(--ink3);margin-bottom:10px}
+.dp-presets{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.dp-presets button{padding:9px 6px;border:1px solid var(--line);border-radius:9px;background:#fff;color:var(--ink2);font-size:13px;transition:.12s}
+.dp-presets button:hover{border-color:var(--primary);color:var(--primary)}
+.dp-presets button.on{background:var(--primary-soft);color:var(--primary);border-color:transparent;font-weight:600}
+.dp-custom{display:flex;align-items:center;gap:6px;border-top:1px solid var(--line);padding-top:12px}
+.dp-custom input{flex:1;min-width:0;padding:7px 8px;border:1px solid var(--line);border-radius:8px;font-size:12px;color:var(--ink)}
+.dp-custom span{color:var(--ink3)}
+.dp-apply{padding:8px 14px;background:var(--primary);color:#fff;border-radius:8px;font-size:13px;font-weight:600;white-space:nowrap}
+.tb-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--ink2);background:#f3f5f9;cursor:pointer;transition:.12s;flex:none}
+.tb-icon:hover{background:#e7ecf4;color:var(--primary)}
+.tb-icon.spinning svg{animation:sp .8s linear}
+.tb-bell-wrap{position:relative}
+.bell-panel{position:absolute;top:48px;right:0;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 14px 40px rgba(20,30,60,.18);width:260px;z-index:60;overflow:hidden}
+.bell-panel .bh{padding:12px 15px;font-size:13px;font-weight:700;border-bottom:1px solid var(--line);background:#fafbfd}
+.bell-item{display:flex;align-items:center;justify-content:space-between;padding:12px 15px;font-size:13px;cursor:pointer;border-bottom:1px solid var(--line);color:var(--ink2)}
+.bell-item:last-child{border-bottom:none}
+.bell-item:hover{background:#f5f8fc}
+.bell-item .bv{font-weight:700;color:var(--primary)}
+.az-grid{display:grid;grid-template-columns:380px 1fr;gap:14px;align-items:start}
+@media(max-width:900px){.az-grid{grid-template-columns:1fr}}
+.az-matched{background:#eafaf1;color:#0f9d58;font-size:12.5px;padding:9px 12px;border-radius:9px;margin-bottom:12px;font-weight:600}
+.az-head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--line);padding-bottom:14px}
+.az-score{display:flex;gap:14px;align-items:center}
+.az-md{width:76px;height:76px;border-radius:50%;border:5px solid var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none}
+.az-md span{font-size:25px;font-weight:750;color:var(--c);line-height:1}
+.az-md small{font-size:11px;color:var(--ink3);margin-top:2px}
+.prio-badge{display:inline-block;color:#fff;font-weight:700;font-size:13px;padding:4px 12px;border-radius:8px}
+.az-section{padding:14px 0;border-bottom:1px solid var(--line)}
+.az-section:last-of-type{border-bottom:none}
+.az-section h4{font-size:13.5px;margin-bottom:10px}
+.az-row{display:flex;font-size:13px;padding:5px 0}
+.az-row .k{width:104px;color:var(--ink3);flex:none}
+.az-row .v{color:var(--ink);flex:1;line-height:1.6}
+.hr-chips{display:flex;flex-wrap:wrap;gap:8px}
+.hr-chip{font-size:12px;padding:5px 11px;border-radius:20px;background:#f1f3f7;color:var(--ink3);border:1px solid var(--line)}
+.hr-chip.on{background:#eafaf1;color:#0f9d58;border-color:#bfe9cf;font-weight:600}
+.az-section.sugg p{background:#eef4ff;padding:11px 13px;border-radius:10px;font-size:13.5px;line-height:1.75;color:#1e40af}
+.az-section.script p{background:#f7f5ff;padding:12px 14px;border-radius:10px;font-size:13.5px;line-height:1.85;color:var(--ink);white-space:pre-wrap}
+.az-section.risk p{background:#fff5f5;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.7;color:#b91c1c}
+.ai-badge{font-size:11px;color:#fff;background:linear-gradient(90deg,#6366f1,#3b82f6);padding:2px 9px;border-radius:20px;vertical-align:middle;font-weight:700}
+.bp-summary{margin-bottom:14px;background:linear-gradient(120deg,#f3f6ff,#fff);border:1px solid #e0e8ff}
+.bp-summary p{font-size:14px;line-height:1.85;color:var(--ink)}
+.bp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(335px,1fr));gap:14px;margin-bottom:16px}
+.bp-card{background:#fff;border-radius:14px;box-shadow:var(--shadow);padding:15px}
+.bp-card-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.bp-tag{color:#fff;font-size:12px;font-weight:700;padding:3px 11px;border-radius:7px;white-space:nowrap}
+.bp-row{font-size:13px;line-height:1.7;padding:4px 0;color:var(--ink2)}
+.bp-row b{margin-right:6px}
+.bp-row.sugg2{background:#eef4ff;padding:9px 11px;border-radius:9px;margin-top:6px;color:#1e40af}
+.todo-brief{display:flex;gap:15px;align-items:center;margin-bottom:14px;background:linear-gradient(120deg,#fff7ed,#fff);border:1px solid #fde9d2}
+.tb-icon-lg{font-size:32px;flex:none}
+.tb-title{font-size:12.5px;color:var(--ink3);font-weight:600;margin-bottom:4px}
+.tb-text{font-size:15px;line-height:1.75;color:var(--ink)}
+.chip-btn{padding:7px 13px;border:1px solid var(--line);border-radius:20px;background:#fff;color:var(--ink2);font-size:13px;transition:.12s}
+.chip-btn:hover{border-color:var(--primary);color:var(--primary)}
+.chip-btn.on{background:var(--primary);color:#fff;border-color:transparent;font-weight:600}
+.todo-mine{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2);cursor:pointer}
+.prio{display:inline-block;font-size:12px;font-weight:700;padding:3px 10px;border-radius:7px;color:#fff}
+.prio.hi{background:#e11d48}.prio.mid{background:#f59e0b}
+.imp-drop{border:2px dashed var(--line);border-radius:14px;padding:34px;text-align:center;color:var(--ink2)}
+.imp-maps{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px}
+@media(max-width:720px){.imp-maps{grid-template-columns:1fr}}
+.imp-map-row{display:flex;align-items:center;gap:10px}
+.imp-f{width:96px;flex:none;font-size:13px;color:var(--ink2)}
+.imp-key{margin-top:16px;font-size:13px;color:var(--ink2);background:#f7f9fc;padding:10px 12px;border-radius:9px}
+
+@media(max-width:1180px){.cards{grid-template-columns:repeat(3,1fr)}.dash{grid-template-columns:1fr}.chart-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.sidebar{display:none}.cards{grid-template-columns:repeat(2,1fr)}.pending{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:1}}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="login-brand">
+      <div id="loginLogo"></div>
+      <h1>AMC雌马酚 · 达人BD商务后台</h1>
+      <p>INFLUENCER&nbsp;&nbsp;BD&nbsp;&nbsp;CONSOLE</p>
+    </div>
+    <div id="loginErr" class="login-err hidden"></div>
+    <div id="loginForm">
+      <div class="field"><label>邮箱账号</label><input id="li-email" type="email" placeholder="name@amc-bd.com" autocomplete="username"></div>
+      <div class="field"><label>密码</label><input id="li-pass" type="password" placeholder="请输入密码" autocomplete="current-password"></div>
+      <button class="btn block" id="li-btn" onclick="doLogin()">登录</button>
+      <div class="login-switch" style="color:var(--ink3)">账号由超级管理员统一创建分配</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="hidden">
+  <aside class="sidebar">
+    <div class="sb-brand"><div id="sbLogo"></div><div><div class="t1">AMC雌马酚</div><div class="t2">达人BD商务后台</div></div></div>
+    <nav class="nav" id="nav"></nav>
+    <div class="sb-foot" onclick="doLogout()">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+      退出登录
+    </div>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <div class="search">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4-4"/></svg>
+        <input id="globalSearch" placeholder="搜索达人昵称、平台、负责人…" onkeydown="if(event.key==='Enter')globalSearchGo()">
+      </div>
+      <div class="tb-date">
+        <div class="tb-pill clickable" id="datePill" onclick="toggleDatePicker(event)">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span id="dateRangeLabel">近7天</span>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="margin-left:2px"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <div id="datePanel" class="date-panel hidden" onclick="event.stopPropagation()">
+          <div class="dp-title">选择统计区间</div>
+          <div class="dp-presets">
+            <button data-p="today" onclick="setDatePreset('today')">今天</button>
+            <button data-p="7d" class="on" onclick="setDatePreset('7d')">近7天</button>
+            <button data-p="30d" onclick="setDatePreset('30d')">近30天</button>
+            <button data-p="month" onclick="setDatePreset('month')">本月</button>
+            <button data-p="90d" onclick="setDatePreset('90d')">近90天</button>
+            <button data-p="all" onclick="setDatePreset('all')">全部</button>
+          </div>
+          <div class="dp-custom">
+            <input type="date" id="dpFrom"><span>~</span><input type="date" id="dpTo">
+            <button class="dp-apply" onclick="applyCustomDate()">应用</button>
+          </div>
+        </div>
+      </div>
+      <div class="tb-pill">
+        <select id="platformFilter" onchange="state.view==='influencers'&&renderInfluencers()">
+          <option value="">全部平台</option><option>抖音</option><option>小红书</option><option>视频号</option><option>快手</option><option>其他</option>
+        </select>
+      </div>
+      <div class="tb-spacer"></div>
+      <div class="tb-icon" id="refreshBtn" onclick="refreshView()" title="刷新数据">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </div>
+      <div class="tb-bell-wrap">
+        <div class="tb-icon bell" id="bellBtn" onclick="toggleBell(event)"><svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg><span class="badge" id="bellBadge">0</span></div>
+        <div id="bellPanel" class="bell-panel hidden" onclick="event.stopPropagation()"></div>
+      </div>
+      <div class="me"><div style="text-align:right"><div class="nm" id="meName">—</div><div class="rl" id="meRole">—</div></div><div class="avatar" id="meAvatar">·</div></div>
+    </header>
+    <main class="content" id="view"><div class="spin"></div></main>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+<div id="toast"></div>
+
+<script>
+/* ============ CONFIG ============ */
+const SUPABASE_URL='https://ekfxwfyknwzmsyzqyklh.supabase.co';
+const SUPABASE_KEY='sb_publishable__IAOk87UFnM2MpDtbbubMw_P4sFetOW';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const LOGO_URL='https://ekfxwfyknwzmsyzqyklh.supabase.co/storage/v1/object/public/assets/amc-logo.png';
+const PRODUCT_URL='https://ekfxwfyknwzmsyzqyklh.supabase.co/storage/v1/object/public/assets/product.png';
+const sbSignup=supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false,storageKey:'amc-signup-temp'}});
+
+const PLATFORMS=['抖音','小红书','视频号','快手','其他'];
+const STAGES=['名单','已联系','已回复','已寄样','已开播','已复购'];
+const INF_STATUS=['待跟进','跟进中','合作中','已合作','暂停'];
+const SHIP_STATUS=['待寄样','已寄样','已签收'];
+const LIVE_STATUS=['待确认','待开播','已开播','已取消'];
+const COMM_STATUS=['待结算','已结算'];
+const AVA_COLORS=['#3b82f6','#8b5cf6','#14b8a6','#f59e0b','#6366f1','#f43f5e','#0ea5e9','#ec4899'];
+const PIE_COLORS={'抖音':'#3b82f6','小红书':'#f43f5e','视频号':'#22c55e','快手':'#f59e0b','其他':'#a78bfa'};
+const FUNNEL_COLORS=['#5b8def','#4f9ff0','#37c3a6','#2bb3b8','#7c83f0','#22c3d6'];
+
+const state={me:null,members:[],view:'home',page:0,pageSize:20};
+
+/* ============ LOGO ============ */
+function logoSVG(size){return `<img src="${LOGO_URL}" alt="AMC" style="width:${size}px;height:${size}px;object-fit:contain;display:block">`;}
+document.getElementById('loginLogo').innerHTML=logoSVG(76);
+document.getElementById('sbLogo').innerHTML=logoSVG(34);
+
+/* ============ ICONS ============ */
+const IC={
+ home:'<path d="M3 11l9-8 9 8M5 9v11h5v-6h4v6h5V9"/>',
+ lib:'<path d="M17 6.1H3M21 12.1H3M15.1 18H3"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/>',
+ link:'<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+ flow:'<path d="M4 4v16M4 8h12a3 3 0 0 1 0 6H8"/>',
+ box:'<path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/>',
+ cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+ yuan:'<circle cx="12" cy="12" r="9"/><path d="M8 8l4 5 4-5M12 13v4M9.5 15h5"/>',
+ chart:'<path d="M3 3v18h18M7 14l4-4 3 3 5-6"/>',
+ team:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M17 14a4 4 0 0 0 4 6"/>',
+ gear:'<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.3l2-1.6-2-3.4-2.4 1a7 7 0 0 0-2.2-1.3L14 1h-4l-.3 2.4A7 7 0 0 0 7.5 4.7l-2.4-1-2 3.4 2 1.6A7 7 0 0 0 5 12c0 .4 0 .9.1 1.3l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 2.2 1.3L10 23h4l.3-2.4a7 7 0 0 0 2.2-1.3l2.4 1 2-3.4-2-1.6c.1-.4.1-.9.1-1.3z"/>',
+ radar:'<path d="M12 2.5l2.2 5.3L20 10l-5.8 2.5L12 18l-2.2-5.5L4 10l5.8-2.2z"/><circle cx="18.5" cy="16.5" r="1.2"/>',
+ medal:'<circle cx="12" cy="9" r="6"/><path d="M9 14.5L7.5 22l4.5-2.6L16.5 22 15 14.5"/>',
+ check:'<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+ upload:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>'
+};
+const NAV=[
+ ['home','首页',IC.home],['todo','AI智能待办',IC.check],['influencers','达人资源库',IC.lib],['import','数据导入',IC.upload],['analyze','达人智能分析',IC.radar],['connections','建联管理',IC.link],
+ ['progress','合作进度',IC.flow],['samples','样品寄送',IC.box],['live','直播排期',IC.cal],
+ ['commissions','佣金结算',IC.yuan],['review','数据复盘',IC.chart],['team','团队绩效',IC.team],['bdperf','AI绩效分析',IC.medal],['settings','系统设置',IC.gear]
+];
+function svgIcon(p){return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;}
+
+/* ============ HELPERS ============ */
+const $=id=>document.getElementById(id);
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>Number(n||0).toLocaleString('en-US');
+const money=n=>'¥'+Number(n||0).toLocaleString('en-US');
+const kfollow=n=>n>=10000?(n/10000).toFixed(1)+'w':fmt(n);
+function toast(msg,type=''){const t=document.createElement('div');t.className='toast '+type;t.textContent=msg;$('toast').appendChild(t);setTimeout(()=>t.remove(),2600);}
+function initials(name){return name?name.trim().slice(0,2):'·';}
+function avaColor(seed){let h=0;for(const c of(seed||'x'))h=(h*31+c.charCodeAt(0))%AVA_COLORS.length;return AVA_COLORS[h];}
+function ava(name,size=34,url){return url?`<img class="avatar" src="${url}" alt="${esc(name)}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex:none" onerror="this.outerHTML='<div class=&quot;avatar&quot; style=&quot;width:${size}px;height:${size}px;background:${avaColor(name)}&quot;>'+'${esc(initials(name))}'+'</div>'">`:`<div class="avatar" style="width:${size}px;height:${size}px;background:${avaColor(name)}">${esc(initials(name))}</div>`;}
+function memberName(id){const m=state.members.find(x=>x.id===id);return m?m.name:'—';}
+function bdOptions(sel){return state.members.map(m=>`<option value="${m.id}" ${m.id===sel?'selected':''}>${esc(m.name)}（${esc(m.role)}）</option>`).join('');}
+function opts(arr,sel){return arr.map(v=>`<option ${v===sel?'selected':''}>${v}</option>`).join('');}
+function tagFor(v){const map={'合作中':'g','已合作':'b','待跟进':'o','跟进中':'gray','暂停':'r','已签收':'g','已寄样':'b','待寄样':'o','已开播':'g','待开播':'b','待确认':'o','已取消':'gray','已结算':'g'};return map[v]||'gray';}
+
+/* ============ AUTH ============ */
+function toggleAuth(signup){$('signupForm').classList.toggle('hidden',!signup);$('loginForm').classList.toggle('hidden',signup);$('loginErr').classList.add('hidden');}
+function loginErr(m){const e=$('loginErr');e.textContent=m;e.classList.remove('hidden');}
+async function doLogin(){
+  const email=$('li-email').value.trim(),pass=$('li-pass').value;
+  if(!email||!pass)return loginErr('请输入邮箱和密码');
+  $('li-btn').textContent='登录中…';$('li-btn').disabled=true;
+  const {error}=await sb.auth.signInWithPassword({email,password:pass});
+  $('li-btn').textContent='登录';$('li-btn').disabled=false;
+  if(error)return loginErr('登录失败：'+(error.message.includes('Invalid')?'邮箱或密码错误':error.message));
+  await boot();
+}
+async function doSignup(){
+  const name=$('su-name').value.trim(),email=$('su-email').value.trim(),pass=$('su-pass').value;
+  if(!name||!email||!pass)return loginErr('请填写完整信息');
+  if(pass.length<6)return loginErr('密码至少6位');
+  $('su-btn').textContent='注册中…';$('su-btn').disabled=true;
+  const {error}=await sb.auth.signUp({email,password:pass,options:{data:{name,role:'BD'}}});
+  if(error){$('su-btn').textContent='注册并登录';$('su-btn').disabled=false;return loginErr('注册失败：'+error.message);}
+  const {error:e2}=await sb.auth.signInWithPassword({email,password:pass});
+  $('su-btn').textContent='注册并登录';$('su-btn').disabled=false;
+  if(e2)return loginErr('注册成功，但自动登录失败，请手动登录');
+  await boot();
+}
+async function doLogout(){await sb.auth.signOut();location.reload();}
+
+/* ============ BOOT ============ */
+async function boot(){
+  const {data:{session}}=await sb.auth.getSession();
+  if(!session){$('login').classList.remove('hidden');$('app').classList.add('hidden');return;}
+  $('login').classList.add('hidden');$('app').classList.remove('hidden');
+  // load members + me
+  const {data:mem}=await sb.from('bd_members').select('*').order('sort_order');
+  state.members=mem||[];
+  state.me=state.members.find(m=>m.email===session.user.email)||{name:session.user.email.split('@')[0],role:'BD',id:null};
+  $('meName').textContent=state.me.name;$('meRole').textContent=state.me.role;
+  $('meAvatar').outerHTML=ava(state.me.name,34,state.me.avatar_url).replace('class="avatar"','id="meAvatar" class="avatar"');
+  // 默认统计区间：近7天
+  if(!state.dateFrom){const today=new Date();const d7=new Date(today.getTime()-6*864e5);state.preset='7d';state.dateFrom=fmtDate(d7);state.dateTo=fmtDate(today);}
+  $('dateRangeLabel').textContent=periodLabel()+' · '+state.dateFrom.slice(5)+'~'+state.dateTo.slice(5);
+  buildNav();
+  go(state.view||'home');
+}
+function buildNav(){
+  $('nav').innerHTML=NAV.map(([k,label,icon])=>`<a data-k="${k}" onclick="go('${k}')">${svgIcon(icon)}<span>${label}</span></a>`).join('');
+}
+function go(view){
+  state.view=view;state.page=0;
+  document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.k===view));
+  const r={home:renderHome,todo:renderTodo,influencers:renderInfluencers,import:renderImport,analyze:renderAnalyze,connections:renderConnections,progress:renderProgress,samples:renderSamples,live:renderLive,commissions:renderCommissions,review:renderReview,team:renderTeam,bdperf:renderBdPerf,settings:renderSettings}[view];
+  $('view').innerHTML='<div class="spin"></div>';
+  r();
+}
+function globalSearchGo(){const q=$('globalSearch').value.trim();go('influencers');setTimeout(()=>{const s=$('inf-search');if(s){s.value=q;renderInfluencers();}},200);}
+
+/* ============ DASHBOARD ============ */
+async function renderHome(){
+  const [d,plat,fun,rank,acts,prod,pend,tip]=await Promise.all([
+    rpc('api_dashboard',{d_from:state.dateFrom,d_to:state.dateTo}),rpc('api_platform'),rpc('api_funnel'),
+    rpc('api_bd_ranking'),sb.from('activities').select('*').order('created_at',{ascending:false}).limit(6),
+    sb.from('products').select('*').eq('is_core',true).order('created_at').limit(1),
+    rpc('api_pending'),sb.from('ops_tips').select('*').eq('active',true).order('created_at',{ascending:false}).limit(1)
+  ]);
+  const acti=acts.data||[],product=(prod.data||[])[0]||{},tipTxt=((tip.data||[])[0]||{}).content||'';
+  const totalPend=(pend.follow||0)+(pend.sample||0)+(pend.schedule||0)+(pend.commission||0);
+  $('bellBadge').textContent=Math.min(totalPend,99);
+  const dArr=(v,lbl,inv)=>{if(v==null)return '<span class="delta">— 暂无对比</span>';const up=v>=0;const good=inv?!up:up;return `<div class="delta">${lbl} <b class="${good?'up':'down'}">${up?'+':''}${v}% ${up?'↑':'↓'}</b></div>`;};
+  const mc=(label,val,icon,color,delta,dlbl,inv)=>`<div class="metric"><div class="top"><div><div class="label">${label}</div><div class="val">${val}</div></div><div class="ic" style="background:${color}">${svgIcon(icon)}</div></div>${dArr(delta,dlbl,inv)}</div>`;
+  const pl=periodLabel();
+
+  $('view').innerHTML=`
+  <div class="cards">
+    ${mc(pl+'新增达人',fmt(d.new_influencers),IC.team,'var(--blue)',d.d_new,'较上一周期')}
+    ${mc(pl+'建联数',fmt(d.week_connections),IC.link,'var(--purple)',d.d_conn,'较上一周期')}
+    ${mc('有效合作达人',fmt(d.effective_partners),IC.team,'var(--teal)',d.d_eff,'较上次快照')}
+    ${mc('待开播场次',fmt(d.pending_lives),IC.cal,'var(--orange)',d.d_live,'较上次快照')}
+    ${mc('累计成交GMV',money(d.est_gmv),IC.chart,'var(--indigo)',d.d_gmv,'较上次快照')}
+    ${mc('样品库存',fmt(d.sample_inventory),IC.box,'var(--rose)',d.d_inv,'较上次快照',true)}
+  </div>
+  <div class="dash">
+    <div class="panel" style="grid-column:1">
+      <div class="ph"><h3>建联趋势</h3><span style="font-size:12px;color:var(--ink3)">${state.dateFrom} ~ ${state.dateTo}</span></div>
+      <div style="height:230px;position:relative"><canvas id="trendChart"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>平台来源分布</h3></div>
+      <div class="donut-wrap"><div class="donut-box"><canvas id="platChart"></canvas><div class="donut-center"><div class="a">总占比</div><div class="b">100%</div></div></div>
+      <div class="legend" id="platLegend"></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>合作转化漏斗</h3></div>
+      <div class="funnel" id="funnel"></div>
+    </div>
+    <div class="panel" style="grid-column:1">
+      <div class="ph"><h3>BD成员业绩排行</h3><span class="more" onclick="go('team')">查看全部 ›</span></div>
+      <div class="table-scroll"><table><thead><tr><th>排名</th><th>BD姓名</th><th>负责达人数</th><th>回复率</th><th>已寄样</th><th>已开播</th><th>成交GMV</th></tr></thead><tbody id="rankBody"></tbody></table></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>实时合作动态</h3></div>
+      <div class="feed">${acti.map(a=>feedItem(a)).join('')||'<div class="empty">暂无动态</div>'}</div>
+    </div>
+    <div class="panel">
+      <div class="ph"><h3>核心单品概览</h3></div>
+      <div class="product">
+        <div class="pcard"><div class="pimg" style="background:#fff;overflow:hidden"><img src="${PRODUCT_URL}" alt="AMC雌马酚" style="width:100%;height:100%;object-fit:cover;display:block"></div>
+          <div style="flex:1">
+            <div class="prow"><span class="k">单品</span><span class="v">${esc(product.name||'AMC雌马酚')}</span></div>
+            <div class="prow"><span class="k">主打人群</span><span class="v">${esc(product.target_audience||'—')}</span></div>
+            <div class="prow"><span class="k">今日寄样</span><span class="v">${fmt(product.today_shipped)}</span></div>
+            <div class="prow"><span class="k">本周开播</span><span class="v">${fmt(product.week_live)}</span></div>
+            <div class="prow"><span class="k">本周成交转化率</span><span class="v" style="color:var(--primary)">${product.week_conversion_rate||0}%</span></div>
+          </div></div>
+        <div class="chips">${(product.tags||[]).map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
+      </div>
+    </div>
+    <div class="panel" style="grid-column:1">
+      <div class="ph"><h3>待处理事项</h3></div>
+      <div class="pending">
+        <div class="pend b"><span class="pl">待跟进达人</span><span class="pv">${fmt(pend.follow)}</span></div>
+        <div class="pend g"><span class="pl">待寄样</span><span class="pv">${fmt(pend.sample)}</span></div>
+        <div class="pend o"><span class="pl">待确认档期</span><span class="pv">${fmt(pend.schedule)}</span></div>
+        <div class="pend r"><span class="pl">待结算佣金</span><span class="pv">${fmt(pend.commission)}</span></div>
+      </div>
+    </div>
+    <div class="panel tips" style="grid-column:2/4">
+      <div class="ph"><h3>💡 运营建议</h3></div>
+      <p>${esc(tipTxt)||'暂无运营建议，可在「系统设置」中编辑。'}</p>
+    </div>
+  </div>`;
+
+  // rank table
+  $('rankBody').innerHTML=(rank||[]).slice(0,5).map((m,i)=>{
+    const colors=['#f59e0b','#94a3b8','#d97706','#cbd5e1','#cbd5e1'];
+    return `<tr><td><span class="rank-badge" style="background:${i<3?colors[i]:'#e2e8f0'};color:${i<3?'#fff':'#64748b'}">${i+1}</span></td>
+      <td><div class="cell-bd">${ava(m.name,28,m.avatar_url)}<span>${esc(m.name)}</span></div></td>
+      <td>${fmt(m.influencers)}</td><td>${m.reply_rate}%</td><td>${fmt(m.samples)}</td><td>${fmt(m.lives)}</td>
+      <td><b>${money(m.gmv)}</b></td></tr>`;}).join('');
+
+  drawPlat(plat);drawFunnel(fun);drawTrend();
+}
+function feedItem(a){
+  const c={'建联':'#3b82f6','寄样':'#22c55e','排期':'#f59e0b','成交':'#8b5cf6'}[a.action_type]||'#3b82f6';
+  const t=new Date(a.created_at),hh=String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0');
+  return `<div class="it"><span class="tm">${hh}</span><span class="dt2" style="background:${c}"></span><span class="tx"><b>${esc(a.bd_name||'')}</b> ${esc(a.content)}</span></div>`;
+}
+let trendChart,platChart;
+async function drawTrend(){
+  let tf=state.dateFrom;
+  if((new Date(state.dateTo)-new Date(state.dateFrom))/864e5>90){tf=fmtDate(new Date(new Date(state.dateTo).getTime()-89*864e5));}
+  const data=await rpc('api_trend',{d_from:tf,d_to:state.dateTo});
+  const labels=data.map(x=>x.dt),vals=data.map(x=>x.cnt);
+  if(trendChart)trendChart.destroy();
+  const ctx=$('trendChart');if(!ctx)return;
+  const g=ctx.getContext('2d').createLinearGradient(0,0,0,220);g.addColorStop(0,'rgba(59,111,246,.22)');g.addColorStop(1,'rgba(59,111,246,0)');
+  trendChart=new Chart(ctx,{type:'line',data:{labels,datasets:[{label:'BD建联数',data:vals,borderColor:'#3b6ff6',backgroundColor:g,fill:true,tension:.4,pointRadius:labels.length<=10?4:0,pointBackgroundColor:'#3b6ff6',borderWidth:2.5}]},
+   options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'#f0f3f8'},ticks:{color:'#9aa6b6'}},x:{grid:{display:false},ticks:{color:'#9aa6b6',maxTicksLimit:10}}}}});
+}
+/* ---------- 工具栏：日期区间 / 提醒 / 刷新 ---------- */
+function periodLabel(){return {today:'今日','7d':'近7天','30d':'近30天','90d':'近90天',month:'本月',all:'累计',custom:'区间'}[state.preset]||'近7天';}
+function pad2(n){return String(n).padStart(2,'0');}
+function fmtDate(d){return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate());}
+function toggleDatePicker(e){e&&e.stopPropagation();const p=$('datePanel');const open=p.classList.contains('hidden');closePopovers();if(open){p.classList.remove('hidden');$('dpFrom').value=state.dateFrom;$('dpTo').value=state.dateTo;}}
+function setDatePreset(p){
+  const today=new Date();let from=new Date(today);
+  if(p==='7d')from=new Date(today.getTime()-6*864e5);
+  else if(p==='30d')from=new Date(today.getTime()-29*864e5);
+  else if(p==='90d')from=new Date(today.getTime()-89*864e5);
+  else if(p==='month')from=new Date(today.getFullYear(),today.getMonth(),1);
+  else if(p==='all')from=new Date(2020,0,1);
+  state.preset=p;applyRange(fmtDate(from),fmtDate(today));
+}
+function applyCustomDate(){const f=$('dpFrom').value,t=$('dpTo').value;if(!f||!t)return toast('请选择开始和结束日期','err');if(f>t)return toast('开始日期不能晚于结束日期','err');state.preset='custom';applyRange(f,t);}
+function applyRange(from,to){
+  state.dateFrom=from;state.dateTo=to;
+  $('dateRangeLabel').textContent=periodLabel()+' · '+from.slice(5)+'~'+to.slice(5);
+  document.querySelectorAll('#datePanel .dp-presets button').forEach(b=>b.classList.toggle('on',b.dataset.p===state.preset));
+  closePopovers();
+  if(state.view==='home')renderHome();else toast('已切换区间，回首页查看','ok');
+}
+async function toggleBell(e){e&&e.stopPropagation();const p=$('bellPanel');const open=p.classList.contains('hidden');closePopovers();if(!open)return;
+  const pend=await rpc('api_pending');
+  p.innerHTML=`<div class="bh">待处理事项</div>`+[['待跟进达人',pend.follow,'influencers'],['待寄样',pend.sample,'samples'],['待确认档期',pend.schedule,'live'],['待结算佣金',pend.commission,'commissions']].map(x=>`<div class="bell-item" onclick="closePopovers();go('${x[2]}')"><span>${x[0]}</span><span class="bv">${fmt(x[1])}</span></div>`).join('');
+  p.classList.remove('hidden');
+}
+function refreshView(){const b=$('refreshBtn');if(b)b.classList.add('spinning');go(state.view);setTimeout(()=>{if(b)b.classList.remove('spinning');},800);}
+function closePopovers(){const a=$('datePanel'),b=$('bellPanel');if(a)a.classList.add('hidden');if(b)b.classList.add('hidden');}
+document.addEventListener('click',closePopovers);
+function drawPlat(plat){
+  const total=plat.reduce((s,x)=>s+x.cnt,0)||1;
+  if(platChart)platChart.destroy();
+  platChart=new Chart($('platChart'),{type:'doughnut',data:{labels:plat.map(x=>x.platform),datasets:[{data:plat.map(x=>x.cnt),backgroundColor:plat.map(x=>PIE_COLORS[x.platform]||'#cbd5e1'),borderWidth:2,borderColor:'#fff'}]},
+   options:{cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.label+' '+Math.round(c.raw/total*100)+'%'}}}}});
+  $('platLegend').innerHTML=plat.map(x=>`<div class="li"><span class="dot" style="background:${PIE_COLORS[x.platform]||'#cbd5e1'}"></span><span class="pn">${esc(x.platform)}</span><span class="pv">${Math.round(x.cnt/total*100)}%</span></div>`).join('');
+}
+function drawFunnel(f){
+  const rows=[['达人名单',f.list],['已联系',f.s1],['已回复',f.s2],['已寄样',f.s3],['已开播',f.s4],['已复购',f.s5]];
+  const max=f.list||1;
+  $('funnel').innerHTML=rows.map((r,i)=>{
+    const w=28+72*(r[1]/max);
+    return `<div class="fn-row"><div class="fn-bar" style="width:${w}%;background:${FUNNEL_COLORS[i]}"></div><div class="fn-side"><span>${r[0]}</span><b>${fmt(r[1])}</b></div></div>`;
+  }).join('');
+}
+
+/* ============ GENERIC DATA ============ */
+async function rpc(fn,args){const {data,error}=await sb.rpc(fn,args||{});if(error){console.error(fn,error);toast('数据加载失败：'+error.message,'err');return fn==='api_dashboard'?{}:[];}return data;}
+async function insertRow(table,row){row=cleanRow(row);const {error}=await sb.from(table).insert(row);if(error){toast('保存失败：'+error.message,'err');return false;}toast('保存成功','ok');return true;}
+async function updateRow(table,id,patch){const {error}=await sb.from(table).update(patch).eq('id',id);if(error){toast('更新失败：'+error.message,'err');return false;}toast('已更新','ok');return true;}
+async function deleteRow(table,id){if(!confirm('确认删除这条记录？'))return false;const {error}=await sb.from(table).delete().eq('id',id);if(error){toast('删除失败：'+error.message,'err');return false;}toast('已删除','ok');return true;}
+function cleanRow(r){const o={};for(const k in r){if(r[k]!==''&&r[k]!=null)o[k]=r[k];}return o;}
+
+/* ============ MODAL / FORM ============ */
+function openModal(title,fieldsHTML,onSubmit,submitLabel='保存'){
+  $('modalRoot').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="modal"><div class="mh"><h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div>
+    <div class="mb"><div class="form-grid" id="mform">${fieldsHTML}</div></div>
+    <div class="mf"><button class="btn line" onclick="closeModal()">取消</button><button class="btn" id="mSubmit">${submitLabel}</button></div></div></div>`;
+  $('mSubmit').onclick=async()=>{$('mSubmit').disabled=true;$('mSubmit').textContent='保存中…';const ok=await onSubmit(formVals());if(ok)closeModal();else{$('mSubmit').disabled=false;$('mSubmit').textContent=submitLabel;}};
+}
+function closeModal(){$('modalRoot').innerHTML='';}
+function formVals(){const o={};document.querySelectorAll('#mform [data-f]').forEach(el=>{o[el.dataset.f]=el.type==='checkbox'?el.checked:el.value;});return o;}
+function fld(label,name,type='text',extra=''){return `<div class="field"><label>${label}</label><input data-f="${name}" type="${type}" ${extra}></div>`;}
+function fldFull(label,name,type='text',extra=''){return `<div class="field full"><label>${label}</label><input data-f="${name}" type="${type}" ${extra}></div>`;}
+function selFull(label,name,html){return `<div class="field full"><label>${label}</label><select data-f="${name}">${html}</select></div>`;}
+function sel(label,name,html){return `<div class="field"><label>${label}</label><select data-f="${name}">${html}</select></div>`;}
+function area(label,name){return `<div class="field full"><label>${label}</label><textarea data-f="${name}" rows="2"></textarea></div>`;}
+
+/* ============ PAGER ============ */
+function pager(total){
+  const pages=Math.ceil(total/state.pageSize)||1,p=state.page;
+  return `<div class="pager"><span>共 ${fmt(total)} 条 · 第 ${p+1}/${pages} 页</span>
+   <div class="pg"><button ${p<=0?'disabled':''} onclick="state.page--;reRender()">‹</button><button ${p>=pages-1?'disabled':''} onclick="state.page++;reRender()">›</button></div></div>`;
+}
+let _curRender=null;function reRender(){_curRender&&_curRender();}
+
+/* ============ 达人资源库 ============ */
+async function renderInfluencers(){
+  _curRender=renderInfluencers;
+  const q=($('inf-search')?$('inf-search').value:'').trim();
+  const pf=$('platformFilter')?$('platformFilter').value:'';
+  const st=$('inf-status')?$('inf-status').value:'';
+  let query=sb.from('influencers').select('*',{count:'exact'});
+  if(q)query=query.ilike('nickname','%'+q+'%');
+  if(pf)query=query.eq('platform',pf);
+  if(st)query=query.eq('status',st);
+  const from=state.page*state.pageSize;
+  const {data,count}=await query.order('created_at',{ascending:false}).range(from,from+state.pageSize-1);
+  const rows=(data||[]).map(r=>`<tr>
+    <td><b>${esc(r.nickname)}</b></td>
+    <td><span class="tag ${r.platform==='抖音'?'b':r.platform==='小红书'?'r':r.platform==='视频号'?'g':r.platform==='快手'?'o':'p'}">${esc(r.platform)}</span></td>
+    <td>${kfollow(r.follower_count)}</td><td>${esc(r.category||'—')}</td>
+    <td>${esc(memberName(r.assigned_bd_id))}</td>
+    <td>${esc(r.funnel_stage)}</td>
+    <td><select class="inline-select" onchange="updInf('${r.id}','status',this.value)">${opts(INF_STATUS,r.status)}</select></td>
+    <td>${new Date(r.created_at).toLocaleDateString('zh-CN')}</td>
+    <td><span class="icon-btn" onclick="editInfluencer('${r.id}')" title="编辑">✎</span><span class="icon-btn" onclick="delRow('influencers','${r.id}')" title="删除">🗑</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>达人资源库</h2><p>共收录 ${fmt(count||0)} 位达人 · 平台来源、阶段与负责人一目了然</p></div>
+     <button class="btn" onclick="addInfluencer()">+ 新增达人</button></div>
+   <div class="toolbar">
+     <input class="tinput" id="inf-search" placeholder="搜索达人昵称…" value="${esc(q)}" onkeydown="if(event.key==='Enter'){state.page=0;renderInfluencers()}">
+     <select class="tinput" id="inf-status" onchange="state.page=0;renderInfluencers()"><option value="">全部状态</option>${opts(INF_STATUS,st)}</select>
+     <button class="btn line sm" onclick="state.page=0;renderInfluencers()">筛选</button>
+   </div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>达人昵称</th><th>平台</th><th>粉丝数</th><th>类目</th><th>负责BD</th><th>阶段</th><th>状态</th><th>创建时间</th><th>操作</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="9" class="empty">暂无数据，点击右上角新增</td></tr>'}</tbody></table></div>
+     ${pager(count||0)}</div>`;
+}
+async function updInf(id,field,val){const patch={[field]:val};if(field==='funnel_stage')patch.stage_level=STAGES.indexOf(val);await updateRow('influencers',id,patch);}
+function infForm(r){r=r||{};return [
+  fldFull('达人昵称 *','nickname','text',`value="${esc(r.nickname||'')}"`),
+  sel('平台','platform',opts(PLATFORMS,r.platform||'抖音')),
+  fld('粉丝数','follower_count','number',`value="${r.follower_count||''}"`),
+  fld('类目','category','text',`value="${esc(r.category||'')}" placeholder="如 女性健康"`),
+  fld('联系方式','contact','text',`value="${esc(r.contact||'')}"`),
+  fld('地区','region','text',`value="${esc(r.region||'')}"`),
+  sel('负责BD','assigned_bd_id',bdOptions(r.assigned_bd_id||(state.me&&state.me.id))),
+  sel('合作阶段','funnel_stage',opts(STAGES,r.funnel_stage||'名单')),
+  sel('状态','status',opts(INF_STATUS,r.status||'待跟进')),
+  area('备注','note')
+].join('');}
+function addInfluencer(){openModal('新增达人',infForm(),async v=>{
+  v.stage_level=STAGES.indexOf(v.funnel_stage);v.follower_count=parseInt(v.follower_count)||0;v.created_by=state.me&&state.me.id;
+  if(!v.nickname){toast('请填写达人昵称','err');return false;}
+  const ok=await insertRow('influencers',v);if(ok)renderInfluencers();return ok;});}
+async function editInfluencer(id){const {data}=await sb.from('influencers').select('*').eq('id',id).single();
+  openModal('编辑达人',infForm(data),async v=>{v.stage_level=STAGES.indexOf(v.funnel_stage);v.follower_count=parseInt(v.follower_count)||0;
+   const ok=await updateRow('influencers',id,cleanRow(v));if(ok)renderInfluencers();return ok;});}
+async function delRow(t,id){if(await deleteRow(t,id))reRender();}
+
+/* ============ 建联管理 ============ */
+async function renderConnections(){
+  _curRender=renderConnections;
+  const from=state.page*state.pageSize;
+  const {data,count}=await sb.from('connections').select('*',{count:'exact'}).order('connect_date',{ascending:false}).order('created_at',{ascending:false}).range(from,from+state.pageSize-1);
+  const {data:wk}=await sb.rpc('api_dashboard');
+  const rows=(data||[]).map(r=>`<tr>
+    <td><b>${esc(r.influencer_name||'—')}</b></td>
+    <td>${esc(r.platform||'—')}</td><td>${esc(memberName(r.bd_id))}</td>
+    <td>${r.connect_date}</td>
+    <td>${r.replied?'<span class="tag g">已回复</span>':'<span class="tag gray">未回复</span>'}</td>
+    <td>${esc(r.note||'')}</td>
+    <td><span class="icon-btn" onclick="delRow('connections','${r.id}')">🗑</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>建联管理</h2><p>本周建联 ${fmt(wk?wk.week_connections:0)} 次 · 记录每一次达人触达</p></div>
+     <button class="btn" onclick="addConnection()">+ 新增建联</button></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>达人</th><th>平台</th><th>负责BD</th><th>建联日期</th><th>是否回复</th><th>备注</th><th>操作</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="7" class="empty">暂无建联记录</td></tr>'}</tbody></table></div>${pager(count||0)}</div>`;
+}
+function addConnection(){const today=new Date().toISOString().slice(0,10);
+  openModal('新增建联记录',[
+   fldFull('达人昵称','influencer_name','text','placeholder="达人昵称"'),
+   sel('平台','platform',opts(PLATFORMS,'抖音')),
+   sel('负责BD','bd_id',bdOptions(state.me&&state.me.id)),
+   fld('建联日期','connect_date','date',`value="${today}"`),
+   `<div class="field"><label>是否已回复</label><select data-f="replied"><option value="false">未回复</option><option value="true">已回复</option></select></div>`,
+   area('备注','note')
+  ].join(''),async v=>{v.replied=v.replied==='true';const ok=await insertRow('connections',v);if(ok)renderConnections();return ok;});}
+
+/* ============ 合作进度 ============ */
+async function renderProgress(){
+  _curRender=renderProgress;
+  const fun=await rpc('api_funnel');
+  const stage=$('prog-stage')?$('prog-stage').value:'已寄样';
+  const from=state.page*state.pageSize;
+  const {data,count}=await sb.from('influencers').select('*',{count:'exact'}).eq('funnel_stage',stage).order('created_at',{ascending:false}).range(from,from+state.pageSize-1);
+  const stageCards=[['达人名单',fun.list],['已联系',fun.s1],['已回复',fun.s2],['已寄样',fun.s3],['已开播',fun.s4],['已复购',fun.s5]]
+    .map((s,i)=>`<div class="metric" style="cursor:default"><div class="label">${s[0]}</div><div class="val" style="font-size:22px;color:${FUNNEL_COLORS[i]}">${fmt(s[1])}</div></div>`).join('');
+  const rows=(data||[]).map(r=>`<tr>
+    <td><b>${esc(r.nickname)}</b></td><td>${esc(r.platform)}</td><td>${esc(memberName(r.assigned_bd_id))}</td>
+    <td><select class="inline-select" onchange="advanceStage('${r.id}',this.value)">${opts(STAGES,r.funnel_stage)}</select></td>
+    <td><span class="tag ${tagFor(r.status)}">${esc(r.status)}</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>合作进度</h2><p>从名单到复购的全链路转化 · 点击阶段可推进达人状态</p></div></div>
+   <div class="cards" style="grid-template-columns:repeat(6,1fr);margin-bottom:18px">${stageCards}</div>
+   <div class="toolbar"><span style="color:var(--ink2)">查看阶段：</span>
+     <select class="tinput" id="prog-stage" onchange="state.page=0;renderProgress()">${opts(STAGES,stage)}</select></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>达人</th><th>平台</th><th>负责BD</th><th>推进到阶段</th><th>状态</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="5" class="empty">该阶段暂无达人</td></tr>'}</tbody></table></div>${pager(count||0)}</div>`;
+}
+async function advanceStage(id,stage){await updateRow('influencers',id,{funnel_stage:stage,stage_level:STAGES.indexOf(stage)});renderProgress();}
+
+/* ============ 样品寄送 ============ */
+async function renderSamples(){
+  _curRender=renderSamples;
+  const from=state.page*state.pageSize;
+  const {data,count}=await sb.from('samples').select('*',{count:'exact'}).order('created_at',{ascending:false}).range(from,from+state.pageSize-1);
+  const rows=(data||[]).map(r=>`<tr>
+    <td><b>${esc(r.influencer_name||'—')}</b></td><td>${esc(memberName(r.bd_id))}</td>
+    <td>${esc(r.product_name)}</td><td>${fmt(r.quantity)}</td>
+    <td><select class="inline-select" onchange="updateRow('samples','${r.id}',{ship_status:this.value}).then(renderSamples)">${opts(SHIP_STATUS,r.ship_status)}</select></td>
+    <td>${esc(r.tracking_no||'—')}</td><td>${r.ship_date||'—'}</td>
+    <td><span class="icon-btn" onclick="delRow('samples','${r.id}')">🗑</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>样品寄送</h2><p>管理 AMC雌马酚 样品寄送与签收状态</p></div>
+     <button class="btn" onclick="addSample()">+ 新增寄样</button></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>达人</th><th>负责BD</th><th>产品</th><th>数量</th><th>寄送状态</th><th>快递单号</th><th>寄出日期</th><th>操作</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="8" class="empty">暂无寄样记录</td></tr>'}</tbody></table></div>${pager(count||0)}</div>`;
+}
+function addSample(){openModal('新增寄样',[
+  fldFull('达人昵称','influencer_name','text',''),
+  sel('负责BD','bd_id',bdOptions(state.me&&state.me.id)),
+  fld('产品','product_name','text','value="AMC雌马酚"'),
+  fld('数量','quantity','number','value="1"'),
+  sel('寄送状态','ship_status',opts(SHIP_STATUS,'待寄样')),
+  fld('快递单号','tracking_no','text',''),
+  fld('寄出日期','ship_date','date',''),
+  area('备注','note')
+].join(''),async v=>{v.quantity=parseInt(v.quantity)||1;const ok=await insertRow('samples',v);if(ok)renderSamples();return ok;});}
+
+/* ============ 直播排期 ============ */
+async function renderLive(){
+  _curRender=renderLive;
+  const from=state.page*state.pageSize;
+  const {data,count}=await sb.from('live_schedules').select('*',{count:'exact'}).order('scheduled_at',{ascending:false,nullsFirst:false}).range(from,from+state.pageSize-1);
+  const rows=(data||[]).map(r=>`<tr>
+    <td><b>${esc(r.influencer_name||'—')}</b></td><td>${esc(memberName(r.bd_id))}</td>
+    <td>${r.scheduled_at?new Date(r.scheduled_at).toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'—'}</td>
+    <td><select class="inline-select" onchange="updateRow('live_schedules','${r.id}',{status:this.value}).then(renderLive)">${opts(LIVE_STATUS,r.status)}</select></td>
+    <td>${money(r.estimated_gmv)}</td><td>${r.actual_gmv>0?money(r.actual_gmv):'—'}</td>
+    <td><span class="icon-btn" onclick="editLive('${r.id}')">✎</span><span class="icon-btn" onclick="delRow('live_schedules','${r.id}')">🗑</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>直播排期</h2><p>确认档期、追踪开播与成交</p></div>
+     <button class="btn" onclick="addLive()">+ 新增排期</button></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>达人</th><th>负责BD</th><th>排期时间</th><th>状态</th><th>预估GMV</th><th>实际GMV</th><th>操作</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="7" class="empty">暂无排期</td></tr>'}</tbody></table></div>${pager(count||0)}</div>`;
+}
+function liveForm(r){r=r||{};return [
+  fldFull('达人昵称','influencer_name','text',`value="${esc(r.influencer_name||'')}"`),
+  sel('负责BD','bd_id',bdOptions(r.bd_id||(state.me&&state.me.id))),
+  fld('排期时间','scheduled_at','datetime-local',r.scheduled_at?`value="${new Date(r.scheduled_at).toISOString().slice(0,16)}"`:''),
+  sel('状态','status',opts(LIVE_STATUS,r.status||'待确认')),
+  fld('预估GMV','estimated_gmv','number',`value="${r.estimated_gmv||''}"`),
+  fld('实际GMV','actual_gmv','number',`value="${r.actual_gmv||''}"`),
+  area('备注','note')
+].join('');}
+function addLive(){openModal('新增直播排期',liveForm(),async v=>{v.estimated_gmv=parseFloat(v.estimated_gmv)||0;v.actual_gmv=parseFloat(v.actual_gmv)||0;const ok=await insertRow('live_schedules',v);if(ok)renderLive();return ok;});}
+async function editLive(id){const {data}=await sb.from('live_schedules').select('*').eq('id',id).single();
+  openModal('编辑排期',liveForm(data),async v=>{v.estimated_gmv=parseFloat(v.estimated_gmv)||0;v.actual_gmv=parseFloat(v.actual_gmv)||0;const ok=await updateRow('live_schedules',id,cleanRow(v));if(ok)renderLive();return ok;});}
+
+/* ============ 佣金结算 ============ */
+async function renderCommissions(){
+  _curRender=renderCommissions;
+  const from=state.page*state.pageSize;
+  const {data,count}=await sb.from('commissions').select('*',{count:'exact'}).order('created_at',{ascending:false}).range(from,from+state.pageSize-1);
+  const {data:sums}=await sb.from('commissions').select('order_amount,commission_amount,status');
+  const totalGmv=(sums||[]).reduce((s,x)=>s+Number(x.order_amount||0),0);
+  const unsettled=(sums||[]).filter(x=>x.status==='待结算').reduce((s,x)=>s+Number(x.commission_amount||0),0);
+  const rows=(data||[]).map(r=>`<tr>
+    <td><b>${esc(r.influencer_name||'—')}</b></td><td>${esc(memberName(r.bd_id))}</td>
+    <td>${money(r.order_amount)}</td><td>${(r.commission_rate*100||0).toFixed(0)}%</td><td>${money(r.commission_amount)}</td>
+    <td><select class="inline-select" onchange="settleComm('${r.id}',this.value)">${opts(COMM_STATUS,r.status)}</select></td>
+    <td>${r.settle_date||'—'}</td>
+    <td><span class="icon-btn" onclick="delRow('commissions','${r.id}')">🗑</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>佣金结算</h2><p>累计成交GMV ${money(totalGmv)} · 待结算佣金 ${money(unsettled)}</p></div>
+     <button class="btn" onclick="addCommission()">+ 新增结算</button></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>达人</th><th>负责BD</th><th>订单金额</th><th>佣金比例</th><th>佣金金额</th><th>状态</th><th>结算日期</th><th>操作</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="8" class="empty">暂无结算记录</td></tr>'}</tbody></table></div>${pager(count||0)}</div>`;
+}
+async function settleComm(id,status){const patch={status};if(status==='已结算')patch.settle_date=new Date().toISOString().slice(0,10);await updateRow('commissions',id,patch);renderCommissions();}
+function addCommission(){openModal('新增佣金结算',[
+  fldFull('达人昵称','influencer_name','text',''),
+  sel('负责BD','bd_id',bdOptions(state.me&&state.me.id)),
+  fld('订单金额','order_amount','number',''),
+  fld('佣金比例(如0.15)','commission_rate','number','step="0.01" value="0.15"'),
+  sel('状态','status',opts(COMM_STATUS,'待结算')),
+  fld('结算日期','settle_date','date',''),
+  area('备注','note')
+].join(''),async v=>{v.order_amount=parseFloat(v.order_amount)||0;v.commission_rate=parseFloat(v.commission_rate)||0;v.commission_amount=Math.round(v.order_amount*v.commission_rate);const ok=await insertRow('commissions',v);if(ok)renderCommissions();return ok;});}
+
+/* ============ 数据复盘 ============ */
+async function renderReview(){
+  _curRender=renderReview;
+  const [plat,fun,t30,rank]=await Promise.all([rpc('api_platform'),rpc('api_funnel'),rpc('api_trend',{days:30}),rpc('api_bd_ranking')]);
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>数据复盘</h2><p>建联趋势、平台结构、转化漏斗与BD成交对比</p></div></div>
+   <div class="chart-grid">
+     <div class="panel"><div class="ph"><h3>近30天建联趋势</h3></div><div class="chart-box"><canvas id="rv-trend"></canvas></div></div>
+     <div class="panel"><div class="ph"><h3>平台来源分布</h3></div><div class="chart-box"><canvas id="rv-plat"></canvas></div></div>
+     <div class="panel"><div class="ph"><h3>合作转化漏斗</h3></div><div class="chart-box"><canvas id="rv-fun"></canvas></div></div>
+     <div class="panel"><div class="ph"><h3>BD成交GMV对比</h3></div><div class="chart-box"><canvas id="rv-bd"></canvas></div></div>
+   </div>`;
+  new Chart($('rv-trend'),{type:'line',data:{labels:t30.map(x=>x.dt),datasets:[{data:t30.map(x=>x.cnt),borderColor:'#3b6ff6',backgroundColor:'rgba(59,111,246,.12)',fill:true,tension:.4,pointRadius:0,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{maxTicksLimit:10,color:'#9aa6b6'},grid:{display:false}},y:{grid:{color:'#f0f3f8'},ticks:{color:'#9aa6b6'}}}}});
+  const tt=plat.reduce((s,x)=>s+x.cnt,0)||1;
+  new Chart($('rv-plat'),{type:'doughnut',data:{labels:plat.map(x=>x.platform+' '+Math.round(x.cnt/tt*100)+'%'),datasets:[{data:plat.map(x=>x.cnt),backgroundColor:plat.map(x=>PIE_COLORS[x.platform]||'#cbd5e1'),borderWidth:2,borderColor:'#fff'}]},options:{cutout:'62%',plugins:{legend:{position:'right',labels:{color:'#5a6675',font:{size:12}}}}}});
+  new Chart($('rv-fun'),{type:'bar',data:{labels:['达人名单','已联系','已回复','已寄样','已开播','已复购'],datasets:[{data:[fun.list,fun.s1,fun.s2,fun.s3,fun.s4,fun.s5],backgroundColor:FUNNEL_COLORS,borderRadius:6}]},options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{grid:{color:'#f0f3f8'},ticks:{color:'#9aa6b6'}},y:{grid:{display:false},ticks:{color:'#5a6675'}}}}});
+  new Chart($('rv-bd'),{type:'bar',data:{labels:rank.map(x=>x.name),datasets:[{data:rank.map(x=>x.gmv),backgroundColor:'#3b6ff6',borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#5a6675'}},y:{grid:{color:'#f0f3f8'},ticks:{color:'#9aa6b6'}}}}});
+}
+
+/* ============ 团队绩效 ============ */
+async function renderTeam(){
+  _curRender=renderTeam;
+  const rank=await rpc('api_bd_ranking');
+  const rows=(rank||[]).map((m,i)=>`<tr>
+    <td><span class="rank-badge" style="background:${i<3?['#f59e0b','#94a3b8','#d97706'][i]:'#e2e8f0'};color:${i<3?'#fff':'#64748b'}">${i+1}</span></td>
+    <td><div class="cell-bd">${ava(m.name,28,m.avatar_url)}<div><div style="font-weight:600">${esc(m.name)}</div><div style="font-size:11px;color:var(--ink3)">${esc(m.role)}</div></div></div></td>
+    <td>${fmt(m.influencers)}</td><td>${fmt(m.connections)}</td><td>${m.reply_rate}%</td>
+    <td>${fmt(m.samples)}</td><td>${fmt(m.lives)}</td><td><b>${money(m.gmv)}</b></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>团队绩效</h2><p>各BD负责达人、建联、回复率、寄样、开播与成交全维度对比</p></div></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th>排名</th><th>BD成员</th><th>负责达人数</th><th>建联数</th><th>回复率</th><th>已寄样</th><th>已开播</th><th>成交GMV</th></tr></thead>
+     <tbody>${rows||'<tr><td colspan="8" class="empty">暂无数据</td></tr>'}</tbody></table></div></div>`;
+}
+
+/* ============ 系统设置 ============ */
+async function renderSettings(){
+  _curRender=renderSettings;
+  const {data:prod}=await sb.from('products').select('*').eq('is_core',true).order('created_at').limit(1);
+  const p=(prod||[])[0]||{};
+  const {data:tip}=await sb.from('ops_tips').select('*').order('created_at',{ascending:false}).limit(1);
+  const tp=(tip||[])[0]||{};
+  const memRows=state.members.map(m=>`<tr><td><div class="cell-bd">${ava(m.name,26,m.avatar_url)}<span>${esc(m.name)}</span></div></td><td>${esc(m.email||'—')}</td><td><span class="tag ${m.role.includes('管理')?'p':'b'}">${esc(m.role)}</span></td></tr>`).join('');
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>系统设置</h2><p>团队成员、核心单品、运营建议与数据快照</p></div></div>
+   <div class="chart-grid">
+     <div class="panel"><div class="ph"><h3>团队成员</h3>${state.me.role==='超级管理员'?'<button class="btn sm" onclick="createAccount()">+ 创建BD账号</button>':''}</div>
+       <div class="table-scroll"><table><thead><tr><th>姓名</th><th>邮箱</th><th>角色</th></tr></thead><tbody>${memRows}</tbody></table></div>
+       <p style="font-size:12px;color:var(--ink3);margin-top:10px">${state.me.role==='超级管理员'?'提示：点「创建BD账号」为成员设置邮箱和初始密码，成员即可用该账号登录。':'仅超级管理员可创建账号，如需新增成员请联系管理员。'}</p></div>
+     <div class="panel"><div class="ph"><h3>核心单品设置</h3></div>
+       <div class="field"><label>单品名称</label><input id="set-pname" value="${esc(p.name||'AMC雌马酚')}"></div>
+       <div class="form-grid">
+         <div class="field"><label>主打人群</label><input id="set-paud" value="${esc(p.target_audience||'')}"></div>
+         <div class="field"><label>样品库存</label><input id="set-pinv" type="number" value="${p.inventory||0}"></div>
+         <div class="field"><label>今日寄样</label><input id="set-pship" type="number" value="${p.today_shipped||0}"></div>
+         <div class="field"><label>本周开播</label><input id="set-plive" type="number" value="${p.week_live||0}"></div>
+         <div class="field"><label>本周转化率(%)</label><input id="set-pconv" type="number" step="0.1" value="${p.week_conversion_rate||0}"></div>
+         <div class="field"><label>标签(逗号分隔)</label><input id="set-ptags" value="${esc((p.tags||[]).join('，'))}"></div>
+       </div>
+       <button class="btn" onclick="saveProduct('${p.id||''}')">保存单品</button></div>
+     <div class="panel"><div class="ph"><h3>运营建议</h3></div>
+       <div class="field"><textarea id="set-tip" rows="4">${esc(tp.content||'')}</textarea></div>
+       <button class="btn" onclick="saveTip('${tp.id||''}')">保存建议</button></div>
+     <div class="panel"><div class="ph"><h3>数据快照</h3></div>
+       <p style="font-size:13px;color:var(--ink2);line-height:1.8">首页的「较昨日 / 较上周」涨跌幅，是以最近一次保存的数据快照为基准计算的。每天保存一次快照，即可让涨跌幅反映最新变化。</p>
+       <button class="btn gold" style="margin-top:12px" onclick="saveSnapshot()">📸 保存今日数据快照</button></div>
+     <div class="panel"><div class="ph"><h3>账号安全</h3></div>
+       <p style="font-size:13px;color:var(--ink2);line-height:1.7">修改当前登录账号 <b>${esc(state.me.email||'')}</b> 的登录密码，修改后请用新密码登录。</p>
+       <button class="btn" style="margin-top:12px" onclick="changePassword()">🔑 修改密码</button></div>
+   </div>`;
+}
+function createAccount(){if(state.me.role!=='超级管理员')return toast('仅超级管理员可创建账号','err');openModal('创建BD账号',[
+  fldFull('姓名 *','name','text','placeholder="成员姓名/花名"'),
+  fldFull('邮箱账号 *','email','email','placeholder="name@amc-bd.com"'),
+  fld('初始密码 *','password','text','placeholder="至少6位，可告知成员"'),
+  sel('角色','role',opts(['BD','组长','超级管理员'],'BD'))
+].join(''),async v=>{
+  if(!v.name||!v.email||!v.password){toast('请填写姓名、邮箱和密码','err');return false;}
+  if(v.password.length<6){toast('密码至少6位','err');return false;}
+  await sb.from('bd_members').update({email:v.email}).eq('name',v.name).is('user_id',null);
+  const {error}=await sbSignup.auth.signUp({email:v.email,password:v.password,options:{data:{name:v.name,role:v.role}}});
+  try{await sbSignup.auth.signOut({scope:'local'});}catch(e){}
+  if(error){toast('创建失败：'+error.message,'err');return false;}
+  toast('账号已创建，成员可用该邮箱+密码登录','ok');
+  const {data:mem}=await sb.from('bd_members').select('*').order('sort_order');state.members=mem||[];renderSettings();
+  return true;
+},'创建账号');}
+async function saveProduct(id){
+  const tags=$('set-ptags').value.split(/[，,]/).map(s=>s.trim()).filter(Boolean);
+  const row={name:$('set-pname').value,target_audience:$('set-paud').value,inventory:parseInt($('set-pinv').value)||0,today_shipped:parseInt($('set-pship').value)||0,week_live:parseInt($('set-plive').value)||0,week_conversion_rate:parseFloat($('set-pconv').value)||0,tags,is_core:true};
+  let ok;if(id)ok=await updateRow('products',id,row);else ok=await insertRow('products',row);
+}
+async function saveTip(id){const content=$('set-tip').value.trim();if(!content)return toast('请输入建议内容','err');
+  if(id)await updateRow('ops_tips',id,{content});else await insertRow('ops_tips',{content,active:true});}
+async function saveSnapshot(){const {error}=await sb.rpc('api_save_snapshot');if(error)toast('保存失败：'+error.message,'err');else toast('今日数据快照已保存','ok');}
+function changePassword(){openModal('修改密码',[
+  fld('当前密码 *','current','password','placeholder="验证身份"'),
+  fld('新密码 *','np','password','placeholder="至少6位"'),
+  fld('确认新密码 *','np2','password','placeholder="再次输入新密码"')
+].join(''),async v=>{
+  if(!v.current||!v.np||!v.np2){toast('请填写完整','err');return false;}
+  if(v.np.length<6){toast('新密码至少6位','err');return false;}
+  if(v.np!==v.np2){toast('两次新密码不一致','err');return false;}
+  if(!state.me.email){toast('当前账号信息缺失，无法修改','err');return false;}
+  const {error:ve}=await sbSignup.auth.signInWithPassword({email:state.me.email,password:v.current});
+  try{await sbSignup.auth.signOut({scope:'local'});}catch(e){}
+  if(ve){toast('当前密码不正确','err');return false;}
+  const {error:ue}=await sb.auth.updateUser({password:v.np});
+  if(ue){toast('修改失败：'+ue.message,'err');return false;}
+  toast('密码已修改成功，请牢记新密码','ok');
+  return true;
+},'确认修改');}
+
+/* ============ 达人智能分析 (AI) ============ */
+async function renderAnalyze(){
+  _curRender=renderAnalyze;
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>达人智能分析 <span style="font-size:11px;color:#fff;background:linear-gradient(90deg,#6366f1,#3b82f6);padding:2px 9px;border-radius:20px;vertical-align:middle;font-weight:700">AI</span></h2><p>粘贴达人主页链接，AI 结合你的智能体规则库输出契合度、成交概率、建议动作、推荐话术与风险提醒</p></div></div>
+   <div class="az-grid">
+     <div class="panel">
+       <div class="field"><label>达人主页链接</label><input id="az-url" class="tinput" style="width:100%" placeholder="粘贴 抖音 / 小红书 / 视频号 主页链接"></div>
+       <div class="field"><label>账号名 / 昵称 <span style="color:var(--ink3);font-weight:400">（便于匹配已入库达人，可选）</span></label><input id="az-name" class="tinput" style="width:100%" placeholder="如 大新去哪了"></div>
+       <div class="field"><label>主页文案 / 简介 / 近期内容 <span style="color:var(--ink3);font-weight:400">（新达人建议粘贴，分析更准）</span></label><textarea id="az-content" class="tinput" rows="5" style="width:100%;resize:vertical" placeholder="把达人主页的简介、人设、置顶/近期内容粘进来"></textarea></div>
+       <button class="btn block" id="az-btn" onclick="runAnalyze()">⚡ 开始智能分析</button>
+       <p style="font-size:12px;color:var(--ink3);margin-top:10px;line-height:1.6">抖音/小红书有反爬，"粉丝数/互动率/带货"等需看主页的数据：<b>已入库达人</b>自动带出，<b>新达人</b>请把能看到的内容粘进来由 AI 判断。</p>
+     </div>
+     <div class="panel" style="min-height:430px"><div id="az-out"><div class="empty">填写左侧信息后，点「开始智能分析」</div></div></div>
+   </div>`;
+}
+async function runAnalyze(){
+  const url=$('az-url').value.trim(), name=$('az-name').value.trim(), content=$('az-content').value.trim();
+  if(!url&&!content){toast('请至少填写主页链接或主页文案','err');return;}
+  const btn=$('az-btn'); btn.disabled=true; const old=btn.textContent; btn.textContent='AI 分析中（约10-25秒）…';
+  $('az-out').innerHTML='<div class="spin"></div>';
+  let matched=null, known=null;
+  try{
+    const sel='nickname,platform,follower_count,category,funnel_stage,status,assigned_bd_id,contact';
+    if(name){const {data}=await sb.from('influencers').select(sel).ilike('nickname','%'+name+'%').limit(1); if(data&&data[0])matched=data[0];}
+    if(!matched&&url){const key=url.split('?')[0].replace(/\/+$/,'').slice(-24); if(key.length>6){const {data}=await sb.from('influencers').select(sel).ilike('contact','%'+key+'%').limit(1); if(data&&data[0])matched=data[0];}}
+    if(matched){known={昵称:matched.nickname,平台:matched.platform,粉丝数:matched.follower_count,达人类型:matched.category,当前合作阶段:matched.funnel_stage,状态:matched.status,负责BD:memberName(matched.assigned_bd_id)};}
+  }catch(e){}
+  let resp; try{ resp=await sb.functions.invoke('analyze-talent',{body:{url,content,known}}); }catch(e){ resp={error:e}; }
+  btn.disabled=false; btn.textContent=old;
+  const d=resp&&resp.data;
+  if(!d||!d.ok||!d.analysis){ $('az-out').innerHTML=`<div class="empty" style="color:#e11d48">分析失败：${esc((d&&d.error)||(resp&&resp.error&&(resp.error.message||resp.error))||'请稍后重试')}</div>`; return; }
+  window.__lastAnalysis={a:d.analysis, matched, url, content, name};
+  renderAnalysisResult(d.analysis, matched);
+}
+function azTxt(v){return Array.isArray(v)?v.join('；'):(v==null?'':(typeof v==='object'?JSON.stringify(v):String(v)));}
+function renderAnalysisResult(a, matched){
+  const prio=String(a.匹配优先级||'').toUpperCase().slice(0,1);
+  const prioColor={S:'#e11d48',A:'#0f9d58',B:'#3b82f6',C:'#f59e0b',D:'#94a3b8'}[prio]||'#3b82f6';
+  const hr=a.健康相关性||{};
+  const chips=Object.keys(hr).map(k=>`<span class="hr-chip ${hr[k]?'on':''}">${hr[k]?'✓ ':''}${esc(k)}</span>`).join('')||'<span class="hr-chip">—</span>';
+  const md=Math.max(0,Math.min(100,Number(a.匹配度)||0));
+  const row=(k,v)=>`<div class="az-row"><span class="k">${k}</span><span class="v">${esc(azTxt(v))||'—'}</span></div>`;
+  $('az-out').innerHTML=`
+   ${matched?`<div class="az-matched">✓ 已匹配库中达人「${esc(matched.nickname)}」，粉丝数/平台/类目等已自动带入分析</div>`:''}
+   <div class="az-head">
+     <div class="az-score">
+       <div class="az-md" style="--c:${prioColor}"><span>${md}</span><small>匹配度</small></div>
+       <div><div class="prio-badge" style="background:${prioColor}">优先级 ${esc(prio||'-')}</div>
+       <div style="margin-top:7px;font-size:13px;color:var(--ink2)">成交概率 <b style="color:${prioColor};font-size:17px">${esc(azTxt(a.成交概率))||'—'}</b></div>
+       <div style="margin-top:5px;font-size:12px;color:var(--ink3)">命中规则：${esc(azTxt(a.命中规则))||'—'}</div></div>
+     </div>
+     <div class="tag b" style="font-size:13px">${esc(a.平台||'平台未知')}</div>
+   </div>
+   <div class="az-section"><h4>健康场景相关性</h4><div class="hr-chips">${chips}</div></div>
+   <div class="az-section"><h4>基础数据</h4>
+     ${row('粉丝数',a.粉丝数)}${row('近期互动率',a.近期互动率)}${row('内容方向',a.账号内容方向)}${row('粉丝画像',a.粉丝画像)}${row('带货频率',a.近期带货频率)}${row('历史类目',a.历史带货类目)}${row('数据置信度',a.数据置信度)}
+   </div>
+   <div class="az-section sugg"><h4>💡 建议动作</h4><p>${esc(azTxt(a.建议动作))||'—'}</p></div>
+   <div class="az-section script"><h4>💬 推荐话术 <button class="btn line sm" style="float:right;margin-top:-4px" onclick="azCopy()">复制话术</button></h4><p>${esc(azTxt(a.推荐话术))||'—'}</p></div>
+   <div class="az-section risk"><h4>⚠️ 风险提醒</h4><p>${esc(azTxt(a.风险提醒))||'—'}</p></div>
+   <div style="margin-top:16px;display:flex;gap:10px">
+     ${matched?'':'<button class="btn" onclick="azSave()">＋ 存入达人库</button>'}
+     <button class="btn line" onclick="$('az-out').innerHTML='<div class=&quot;empty&quot;>填写左侧信息后，点「开始智能分析」</div>'">清空结果</button>
+   </div>`;
+}
+function azCopy(){const t=azTxt(window.__lastAnalysis&&window.__lastAnalysis.a.推荐话术);if(!t)return;navigator.clipboard.writeText(t).then(()=>toast('话术已复制','ok'),()=>toast('复制失败，请手动选择','err'));}
+async function azSave(){
+  const L=window.__lastAnalysis; if(!L||L.matched)return; const a=L.a;
+  const nickname=String(L.name||a.账号内容方向||'新达人').slice(0,40);
+  const platform=['抖音','小红书','视频号','快手'].includes(a.平台)?a.平台:'其他';
+  const note=('【AI分析】匹配度'+a.匹配度+'/'+(a.匹配优先级||'')+' · 成交概率'+azTxt(a.成交概率)+' · '+azTxt(a.命中规则)+' · '+azTxt(a.建议动作)).slice(0,500);
+  const ok=await insertRow('influencers',{nickname,platform,category:String(azTxt(a.账号内容方向)).slice(0,100),contact:L.url||null,funnel_stage:'名单',stage_level:0,status:'待跟进',note,created_by:state.me&&state.me.id,assigned_bd_id:state.me&&state.me.id});
+  if(ok)toast('已存入达人库，可在「达人资源库」查看','ok');
+}
+
+/* ============ AI BD绩效分析 ============ */
+function memAva(name,size){const m=state.members.find(x=>x.name===name)||{};return ava(name,size,m.avatar_url);}
+async function renderBdPerf(){
+  _curRender=renderBdPerf;
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>AI BD绩效分析 <span class="ai-badge">AI</span></h2><p>不只是排名——诊断每个BD卡在漏斗哪一步，告诉你谁该表扬、谁该培训、谁该调整方法</p></div>
+     <button class="btn" id="bp-ai" onclick="runBdDiagnosis()">🧠 AI 诊断与改进建议</button></div>
+   <div id="bp-report"></div>
+   <div class="table-card"><div class="pad" style="font-weight:600;font-size:13px;padding:14px 16px 4px">效率与质量指标</div><div class="table-scroll"><table>
+     <thead><tr><th>BD</th><th>负责达人</th><th>建联</th><th>回复率</th><th>寄样率</th><th>开播率</th><th>成交GMV</th><th>单达人均GMV</th><th>24h未跟进</th><th>高匹配%</th><th>成交集中度</th></tr></thead>
+     <tbody id="bp-body"><tr><td colspan="11" class="empty"><div class="spin"></div></td></tr></tbody>
+   </table></div></div>`;
+  const data=await rpc('api_bd_performance');
+  window.__bdperf=data;
+  $('bp-body').innerHTML=(data||[]).map(b=>`<tr>
+    <td><div class="cell-bd">${memAva(b.name,26)}<span>${esc(b.name)}</span></div></td>
+    <td>${fmt(b.influencers)}</td><td>${fmt(b.connections)}</td><td>${b.reply_rate}%</td>
+    <td>${b.sample_rate}%</td><td>${b.broadcast_rate==null?'—':b.broadcast_rate+'%'}</td>
+    <td><b>${money(b.gmv)}</b></td><td>${money(b.avg_gmv)}</td>
+    <td>${b.stale_24h>0?`<span class="tag r">${fmt(b.stale_24h)}</span>`:'0'}</td>
+    <td>${b.high_match_ratio}%</td>
+    <td>${b.top1_gmv_share>60?`<span class="tag o">${b.top1_gmv_share}%</span>`:((b.top1_gmv_share||0)+'%')}</td></tr>`).join('')||'<tr><td colspan="11" class="empty">暂无数据</td></tr>';
+}
+async function runBdDiagnosis(){
+  const data=window.__bdperf; if(!data||!data.length){toast('暂无绩效数据','err');return;}
+  const btn=$('bp-ai'); btn.disabled=true; const old=btn.textContent; btn.textContent='AI 全员诊断中…';
+  $('bp-report').innerHTML='<div class="panel" style="margin-bottom:14px;text-align:center"><div class="spin"></div><p style="color:var(--ink3);font-size:13px;margin-top:-22px">AI 正在逐个诊断 BD（全员约 1–2 分钟，请稍候）…</p></div>';
+  let resp; try{ resp=await sb.functions.invoke('analyze-bd',{body:{bds:data}}); }catch(e){ resp={error:e}; }
+  btn.disabled=false; btn.textContent=old;
+  const d=resp&&resp.data;
+  if(!d||!d.ok||!d.report){ $('bp-report').innerHTML=`<div class="panel" style="margin-bottom:14px;color:#e11d48">诊断失败：${esc((d&&d.error)||(resp&&resp.error&&(resp.error.message||resp.error))||'请稍后重试')}</div>`; return; }
+  renderBdReport(d.report);
+}
+function renderBdReport(r){
+  const tagColor={'表扬':'#0f9d58','培训':'#f59e0b','调整方法':'#e11d48'};
+  const gradeColor={'优秀':'#0f9d58','良好':'#3b82f6','待提升':'#f59e0b','需改进':'#e11d48'};
+  const members=r.成员||r.members||[];
+  const cards=members.map(m=>{
+    const tag=azTxt(m.标签); const tc=tagColor[tag]||'#3b82f6'; const gc=gradeColor[m.评级]||'#3b82f6';
+    return `<div class="bp-card" style="border-left:4px solid ${tc}">
+     <div class="bp-card-h"><div class="cell-bd">${memAva(m.姓名||'',30)}<div><div style="font-weight:700">${esc(m.姓名)}</div><div style="font-size:11.5px;color:var(--ink3)">${esc(azTxt(m.一句话画像))}</div></div></div>
+       <div style="text-align:right"><span class="bp-tag" style="background:${tc}">${esc(tag||'—')}</span><div style="font-size:11.5px;color:${gc};font-weight:600;margin-top:4px">${esc(m.评级||'')}</div></div></div>
+     <div class="bp-row"><b style="color:#0f9d58">✓ 亮点</b>${esc(azTxt(m.亮点))||'—'}</div>
+     <div class="bp-row"><b style="color:#e11d48">! 问题</b>${esc(azTxt(m.主要问题))||'—'}</div>
+     <div class="bp-row sugg2"><b style="color:#2563eb">→ 改进</b>${esc(azTxt(m.改进建议))||'—'}</div>
+    </div>`;
+  }).join('');
+  $('bp-report').innerHTML=`
+   <div class="panel bp-summary"><div class="ph"><h3>🧠 AI 团队诊断</h3></div><p>${esc(azTxt(r.团队总结||r.summary))||'—'}</p></div>
+   <div class="bp-grid">${cards}</div>`;
+}
+
+/* ============ AI 智能待办 ============ */
+async function renderTodo(){
+  _curRender=renderTodo;
+  $('view').innerHTML=`
+   <div class="page-head"><div><h2>AI 智能待办 <span class="ai-badge">每日</span></h2><p>每天打开自动按当天数据生成跟进任务，按优先级排好，谁该做什么一目了然</p></div>
+     <button class="btn line" onclick="renderTodo()">🔄 刷新今日任务</button></div>
+   <div id="todo-brief"></div>
+   <div class="toolbar" id="todo-filters"></div>
+   <div class="table-card"><div class="table-scroll"><table>
+     <thead><tr><th style="width:70px">优先级</th><th style="width:110px">任务</th><th>对象</th><th style="width:90px">负责人</th><th>AI 原因</th></tr></thead>
+     <tbody id="todo-body"><tr><td colspan="5" class="empty"><div class="spin"></div></td></tr></tbody>
+   </table></div><div class="pager" id="todo-count"></div></div>`;
+  const d=await rpc('api_todo_tasks');
+  window.__todo=d; state.todoFilter='全部'; state.todoMine=false;
+  const N=(d.cui_bo||0)+(d.fu_bo||0)+(d.reach||0);
+  $('todo-brief').innerHTML=`<div class="panel todo-brief"><div class="tb-icon-lg">🗓️</div><div><div class="tb-title">AI 今日早报 · ${esc(d.date)}</div>
+    <div class="tb-text">今日建议优先处理 <b>${N}</b> 个高价值达人，其中 <b style="color:#e11d48">${d.cui_bo}</b> 个适合催播，<b style="color:#7c3aed">${d.fu_bo}</b> 个适合复播，<b style="color:#2563eb">${d.reach}</b> 个需要二次触达；共 <b>${d.total}</b> 项待办（其中 ${d.high} 项高优先级）。</div></div></div>`;
+  const cats=['全部','高优先级','催直播档期','约复播','加私域维护','确认签收','寄样跟进','二次触达'];
+  $('todo-filters').innerHTML=cats.map((c,i)=>`<button class="chip-btn ${i===0?'on':''}" onclick="todoFilter('${c}',this)">${c}</button>`).join('')+
+    `<label class="todo-mine"><input type="checkbox" onchange="state.todoMine=this.checked;drawTodo()"> 只看我的（${esc(state.me.name)}）</label>`;
+  drawTodo();
+}
+function todoFilter(c,el){state.todoFilter=c;document.querySelectorAll('#todo-filters .chip-btn').forEach(b=>b.classList.toggle('on',b===el));drawTodo();}
+function drawTodo(){
+  const d=window.__todo; if(!d)return; let tasks=(d.tasks||[]).slice();
+  const f=state.todoFilter;
+  if(f==='高优先级')tasks=tasks.filter(t=>t.priority==='高');
+  else if(f&&f!=='全部')tasks=tasks.filter(t=>t.task===f);
+  if(state.todoMine)tasks=tasks.filter(t=>t.owner===state.me.name);
+  $('todo-body').innerHTML=tasks.map(t=>`<tr>
+    <td><span class="prio ${t.priority==='高'?'hi':'mid'}">${esc(t.priority)}</span></td>
+    <td><b>${esc(t.task)}</b></td>
+    <td>${esc(t.target)}</td>
+    <td>${esc(t.owner)}</td>
+    <td style="color:var(--ink2);font-size:12.5px">${esc(t.reason)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">该分类暂无待办 🎉</td></tr>';
+  $('todo-count').innerHTML=`<span>共 ${tasks.length} 项</span>`;
+}
+
+/* ============ 数据导入 / 更新 ============ */
+const IMPORT_FIELDS=[
+  ['nickname','达人昵称 *',['昵称','账号名称','达人昵称','达人名称','达人','账号','主播','名称']],
+  ['contact','主页链接',['主页链接','主页','链接','homepage','url','地址']],
+  ['platform','平台',['平台']],
+  ['follower_count','粉丝数',['粉丝数','粉丝量','粉丝','fans','粉丝数量']],
+  ['interaction_rate','互动率',['互动率','互动']],
+  ['category','类目/类型',['类目','达人类型','类型','分类','标签','内容方向','赛道']],
+  ['ext_gmv','平台GMV',['gmv','成交','带货','销售额','销售']],
+  ['region','地区',['地区','城市','地域','区域']],
+  ['status','状态',['状态','合作状态','进度']],
+  ['owner','负责BD',['负责','bd','负责人','归属']],
+  ['note','备注',['备注','简介','说明','描述']]
+];
+function renderImport(){
+  _curRender=renderImport;
+  if(!window.XLSX){const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';document.head.appendChild(s);}
+  $('view').innerHTML=`<div class="page-head"><div><h2>数据导入 / 更新</h2><p>上传飞书表格或抖音 / 巨量星图 / 百应 / 蒲公英 导出的 Excel/CSV，自动匹配已有达人并更新，新达人自动新增</p></div></div>
+   <div class="panel" id="imp-panel">
+     <div class="imp-drop"><div style="font-size:30px">📄</div><div style="margin:10px 0;font-weight:600">选择文件（.xlsx / .xls / .csv）</div>
+       <div style="font-size:12px;color:var(--ink3)">表头放在第一行即可，列名可在下一步手动调整</div>
+       <input type="file" id="imp-file" accept=".xlsx,.xls,.csv" style="margin-top:14px" onchange="impParse(this)"></div>
+     <p style="font-size:12px;color:var(--ink3);margin-top:12px;line-height:1.6">说明：按「主页链接」或「达人昵称」匹配已有达人——匹配到则<b>更新</b>对应字段，没匹配到则<b>新增</b>。不会删除任何已有数据。</p>
+   </div>`;
+}
+async function impParse(input){
+  if(!input.files||!input.files[0])return;
+  if(!window.XLSX){await new Promise(res=>{let n=0;const i=setInterval(()=>{if(window.XLSX||n++>60){clearInterval(i);res();}},100);});}
+  if(!window.XLSX){toast('解析库加载失败，请刷新重试','err');return;}
+  try{
+    const buf=await input.files[0].arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+    let hi=rows.findIndex(r=>r.filter(c=>String(c).trim()).length>=2); if(hi<0)hi=0;
+    const headers=(rows[hi]||[]).map(h=>String(h).trim());
+    const data=rows.slice(hi+1).filter(r=>r.some(c=>String(c).trim()));
+    window.__imp={headers,data};
+    const mapping={};
+    IMPORT_FIELDS.forEach(([f,l,aliases])=>{mapping[f]=headers.findIndex(h=>h&&aliases.some(a=>h.toLowerCase().includes(a.toLowerCase())));});
+    renderImpMapping(headers,data,mapping);
+  }catch(e){toast('文件解析失败：'+e.message,'err');}
+}
+function renderImpMapping(headers,data,mapping){
+  const opt=sel=>'<option value="-1">（不导入）</option>'+headers.map((h,i)=>`<option value="${i}" ${i===sel?'selected':''}>${esc(h||('列'+(i+1)))}</option>`).join('');
+  const maps=IMPORT_FIELDS.map(([f,label])=>`<div class="imp-map-row"><span class="imp-f">${label}</span><select data-f="${f}" class="inline-select" style="flex:1">${opt(mapping[f])}</select></div>`).join('');
+  $('imp-panel').innerHTML=`
+   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div style="font-weight:600">字段映射（已自动识别，可调整）</div><div style="font-size:12px;color:var(--ink3)">检测到 ${data.length} 行数据</div></div>
+   <div class="imp-maps">${maps}</div>
+   <div class="imp-key">按 <select id="imp-key" class="inline-select"><option value="contact">主页链接</option><option value="nickname">达人昵称</option></select> 匹配已有达人（匹配到→更新；没匹配→新增）</div>
+   <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" onclick="impPreview()">预览</button><button class="btn line" onclick="renderImport()">重选文件</button></div>
+   <div id="imp-result" style="margin-top:14px"></div>`;
+}
+function impBuildRows(){
+  const {headers,data}=window.__imp; const m={}; document.querySelectorAll('#imp-panel select[data-f]').forEach(s=>m[s.dataset.f]=parseInt(s.value));
+  const num=v=>{if(v==null)return '';let s=String(v).trim(),mul=1;if(/[万wW]/.test(s)){mul=10000;}s=s.replace(/[,，\s万wW]/g,'').replace(/[^\d.\-]/g,'');const n=parseFloat(s);return isNaN(n)?'':String(Math.round(n*mul));};
+  const rate=v=>{if(v==null)return '';const n=parseFloat(String(v).replace('%','').replace(/[^\d.\-]/g,''));return isNaN(n)?'':String(n);};
+  return data.map(r=>{const g=f=>m[f]>=0?String(r[m[f]]==null?'':r[m[f]]).trim():'';
+    return {nickname:g('nickname'),contact:g('contact'),platform:g('platform'),follower_count:num(g('follower_count')),interaction_rate:rate(g('interaction_rate')),category:g('category'),ext_gmv:num(g('ext_gmv')),region:g('region'),status:g('status'),owner:g('owner'),note:g('note')};
+  }).filter(r=>r.nickname||r.contact);
+}
+function impPreview(){
+  const rows=impBuildRows(); window.__impRows=rows; const key=$('imp-key').value;
+  if(!rows.length){$('imp-result').innerHTML='<div class="panel" style="color:#e11d48">没有可导入的行（请确认已映射「达人昵称」或「主页链接」）</div>';return;}
+  const s=rows[0];
+  $('imp-result').innerHTML=`<div class="panel" style="background:#f7f9fc"><div style="font-size:13.5px;line-height:1.9">将导入 <b>${rows.length}</b> 行，按「${key==='contact'?'主页链接':'达人昵称'}」匹配，系统自动判断更新或新增。</div>
+    <div style="font-size:12px;color:var(--ink3);margin-top:6px">首行示例：昵称=${esc(s.nickname||'—')}｜平台=${esc(s.platform||'—')}｜粉丝=${esc(s.follower_count||'—')}｜类目=${esc(s.category||'—')}</div>
+    <button class="btn" id="imp-go" style="margin-top:12px" onclick="impExecute()">✅ 确认导入</button></div>`;
+}
+async function impExecute(){
+  const rows=window.__impRows; if(!rows||!rows.length)return; const key=$('imp-key').value;
+  const btn=$('imp-go'); btn.disabled=true; btn.textContent='导入中…';
+  const {data,error}=await sb.rpc('import_influencers',{rows,match_key:key});
+  if(error){btn.disabled=false;btn.textContent='✅ 确认导入';$('imp-result').innerHTML=`<div class="panel" style="color:#e11d48">导入失败：${esc(error.message)}</div>`;return;}
+  $('imp-result').innerHTML=`<div class="panel" style="background:#eafaf1"><div style="font-size:15px;font-weight:700;color:#0f9d58">✅ 导入完成</div>
+    <div style="font-size:14px;margin-top:6px">新增 <b>${data.inserted}</b> 条 · 更新 <b>${data.updated}</b> 条</div>
+    <button class="btn line" style="margin-top:12px" onclick="go('influencers')">去达人资源库查看</button></div>`;
+  toast('导入成功：新增'+data.inserted+'，更新'+data.updated,'ok');
+}
+
+/* ============ START ============ */
+sb.auth.onAuthStateChange((e)=>{if(e==='SIGNED_OUT'){$('login').classList.remove('hidden');$('app').classList.add('hidden');}});
+boot();
+</script>
+</body>
+</html>
