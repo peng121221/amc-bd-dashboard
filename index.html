@@ -452,10 +452,13 @@ async function boot(){
   buildNav();
   go(state.view||'home');
 }
+const ADMIN_ONLY=['commissions','team','bdperf','import'];
+function isAdmin(){return !!(state.me&&state.me.role==='超级管理员');}
 function buildNav(){
-  $('nav').innerHTML=NAV.map(([k,label,icon])=>`<a data-k="${k}" onclick="go('${k}')">${svgIcon(icon)}<span>${label}</span></a>`).join('');
+  $('nav').innerHTML=NAV.filter(([k])=>isAdmin()||!ADMIN_ONLY.includes(k)).map(([k,label,icon])=>`<a data-k="${k}" onclick="go('${k}')">${svgIcon(icon)}<span>${label}</span></a>`).join('');
 }
 function go(view){
+  if(ADMIN_ONLY.includes(view)&&!isAdmin()){toast('该功能仅超级管理员可用','err');view='home';}
   state.view=view;state.page=0;
   document.querySelectorAll('.nav a').forEach(a=>a.classList.toggle('active',a.dataset.k===view));
   const r={home:renderHome,todo:renderTodo,influencers:renderInfluencers,import:renderImport,analyze:renderAnalyze,connections:renderConnections,progress:renderProgress,samples:renderSamples,live:renderLive,commissions:renderCommissions,review:renderReview,team:renderTeam,bdperf:renderBdPerf,settings:renderSettings}[view];
@@ -914,7 +917,37 @@ async function renderSettings(){
      <div class="panel"><div class="ph"><h3>账号安全</h3></div>
        <p style="font-size:13px;color:var(--ink2);line-height:1.7">修改当前登录账号 <b>${esc(state.me.email||'')}</b> 的登录密码，修改后请用新密码登录。</p>
        <button class="btn" style="margin-top:12px" onclick="changePassword()">🔑 修改密码</button></div>
+     ${isAdmin()?`<div class="panel"><div class="ph"><h3>数据治理与审计</h3></div>
+       <p style="font-size:13px;color:var(--ink2);line-height:1.7">合并重复达人（同名保留最高合作阶段，并把建联/样品/直播/成交/事件等关联记录全部重指向，删除多余重复项）；操作日志与 AI 分析历史全程可追溯、可复核。</p>
+       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+         <button class="btn" onclick="mergeDupes()">🧹 合并重复达人</button>
+         <button class="btn line" onclick="showAudit()">📜 操作日志</button>
+         <button class="btn line" onclick="showAiHist()">🤖 AI分析历史</button>
+       </div></div>`:''}
    </div>`;
+}
+function openInfo(title,html){
+  $('modalRoot').innerHTML=`<div class="modal-bg" onclick="if(event.target===this)closeModal()"><div class="modal" style="max-width:720px"><div class="mh"><h3>${title}</h3><button class="x" onclick="closeModal()">×</button></div><div class="mb">${html}</div><div class="mf"><button class="btn" onclick="closeModal()">关闭</button></div></div></div>`;
+}
+async function mergeDupes(){
+  if(!isAdmin())return toast('仅超级管理员可执行','err');
+  if(!confirm('将把同名重复达人合并为一条：保留最高合作阶段，并把建联/样品/直播/成交/事件等关联记录全部指向保留记录，删除多余重复项。\n\n此操作不可撤销，确定继续？'))return;
+  toast('正在合并重复达人…');
+  const {data,error}=await sb.rpc('merge_duplicate_influencers');
+  if(error)return toast('合并失败：'+error.message,'err');
+  toast('完成：合并了 '+((data&&data.merged)||0)+' 条重复达人');
+}
+async function showAudit(){
+  const {data,error}=await sb.from('events').select('*').order('created_at',{ascending:false}).limit(80);
+  if(error)return toast(error.message,'err');
+  const rows=(data||[]).map(e=>`<tr><td style="white-space:nowrap">${new Date(e.created_at).toLocaleString('zh-CN',{hour12:false}).slice(5,16)}</td><td>${esc(e.event_type||'')}</td><td>${esc((e.from_value?e.from_value+' → ':'')+(e.to_value||''))}</td><td>${esc(memberName(e.actor)||'系统/导入')}</td></tr>`).join('')||'<tr><td colspan=4 class="empty">暂无记录</td></tr>';
+  openInfo('操作日志 · 最近80条',`<div class="table-scroll" style="max-height:62vh"><table><thead><tr><th>时间</th><th>动作</th><th>变更</th><th>操作人</th></tr></thead><tbody>${rows}</tbody></table></div>`);
+}
+async function showAiHist(){
+  const {data,error}=await sb.from('ai_analyses').select('*').order('created_at',{ascending:false}).limit(60);
+  if(error)return toast(error.message,'err');
+  const rows=(data||[]).map(a=>`<tr><td style="white-space:nowrap">${new Date(a.created_at).toLocaleString('zh-CN',{hour12:false}).slice(5,16)}</td><td>${a.kind==='bd'?'BD诊断':'达人分析'}</td><td>${esc(a.target||'')}</td><td>${esc(a.summary||'')}</td><td>${esc(a.created_name||'')}</td></tr>`).join('')||'<tr><td colspan=5 class="empty">暂无记录</td></tr>';
+  openInfo('AI 分析历史 · 最近60条',`<div class="table-scroll" style="max-height:62vh"><table><thead><tr><th>时间</th><th>类型</th><th>对象</th><th>摘要</th><th>操作人</th></tr></thead><tbody>${rows}</tbody></table></div>`);
 }
 function createAccount(){if(state.me.role!=='超级管理员')return toast('仅超级管理员可创建账号','err');openModal('创建BD账号',[
   fldFull('姓名 *','name','text','placeholder="成员姓名/花名"'),
@@ -992,6 +1025,7 @@ async function runAnalyze(){
   if(!d||!d.ok||!d.analysis){ $('az-out').innerHTML=`<div class="empty" style="color:#e11d48">分析失败：${esc((d&&d.error)||(resp&&resp.error&&(resp.error.message||resp.error))||'请稍后重试')}</div>`; return; }
   window.__lastAnalysis={a:d.analysis, matched, url, content, name};
   renderAnalysisResult(d.analysis, matched);
+  try{const a=d.analysis; sb.from('ai_analyses').insert({kind:'talent',target:(name||a.昵称||url||'达人'),summary:'匹配度'+(a.匹配度??'-')+'·'+(a.匹配优先级||'')+'·成交概率'+(a.成交概率||'-'),result:a,created_by:state.me&&state.me.id,created_name:state.me&&state.me.name}).then(()=>{});}catch(e){}
 }
 function azTxt(v){return Array.isArray(v)?v.join('；'):(v==null?'':(typeof v==='object'?JSON.stringify(v):String(v)));}
 function renderAnalysisResult(a, matched){
@@ -1066,6 +1100,7 @@ async function runBdDiagnosis(){
   const d=resp&&resp.data;
   if(!d||!d.ok||!d.report){ $('bp-report').innerHTML=`<div class="panel" style="margin-bottom:14px;color:#e11d48">诊断失败：${esc((d&&d.error)||(resp&&resp.error&&(resp.error.message||resp.error))||'请稍后重试')}</div>`; return; }
   renderBdReport(d.report);
+  try{const rp=d.report; sb.from('ai_analyses').insert({kind:'bd',target:'全员绩效诊断',summary:(rp.团队总结||'').slice(0,120),result:rp,created_by:state.me&&state.me.id,created_name:state.me&&state.me.name}).then(()=>{});}catch(e){}
 }
 function renderBdReport(r){
   const tagColor={'表扬':'#0f9d58','培训':'#f59e0b','调整方法':'#e11d48'};
@@ -1180,15 +1215,25 @@ function impBuildRows(){
   const {headers,data}=window.__imp; const m={}; document.querySelectorAll('#imp-panel select[data-f]').forEach(s=>m[s.dataset.f]=parseInt(s.value));
   const num=v=>{if(v==null)return '';let s=String(v).trim(),mul=1;if(/[万wW]/.test(s)){mul=10000;}s=s.replace(/[,，\s万wW]/g,'').replace(/[^\d.\-]/g,'');const n=parseFloat(s);return isNaN(n)?'':String(Math.round(n*mul));};
   const rate=v=>{if(v==null)return '';const n=parseFloat(String(v).replace('%','').replace(/[^\d.\-]/g,''));return isNaN(n)?'':String(n);};
-  return data.map(r=>{const g=f=>m[f]>=0?String(r[m[f]]==null?'':r[m[f]]).trim():'';
+  const key=($('imp-key')&&$('imp-key').value)||'contact';
+  const norm=u=>String(u||'').split('?')[0].replace(/\/+$/,'').trim().toLowerCase();
+  const all=data.map(r=>{const g=f=>m[f]>=0?String(r[m[f]]==null?'':r[m[f]]).trim():'';
     return {nickname:g('nickname'),contact:g('contact'),platform:g('platform'),follower_count:num(g('follower_count')),interaction_rate:rate(g('interaction_rate')),category:g('category'),ext_gmv:num(g('ext_gmv')),region:g('region'),status:g('status'),owner:g('owner'),note:g('note')};
-  }).filter(r=>r.nickname||r.contact);
+  });
+  const valid=all.filter(r=>r.nickname||r.contact);
+  const skipped=all.length-valid.length;
+  const seen=new Map(); let dup=0;
+  for(const r of valid){const k=key==='contact'?(norm(r.contact)||('昵称:'+r.nickname)):(r.nickname||norm(r.contact)); if(!k)continue; if(seen.has(k))dup++; seen.set(k,r);}
+  const rows=[...seen.values()];
+  window.__impStats={raw:all.length,skipped,dup,final:rows.length};
+  return rows;
 }
 function impPreview(){
   const rows=impBuildRows(); window.__impRows=rows; const key=$('imp-key').value;
   if(!rows.length){$('imp-result').innerHTML='<div class="panel" style="color:#e11d48">没有可导入的行（请确认已映射「达人昵称」或「主页链接」）</div>';return;}
-  const s=rows[0];
-  $('imp-result').innerHTML=`<div class="panel" style="background:#f7f9fc"><div style="font-size:13.5px;line-height:1.9">将导入 <b>${rows.length}</b> 行，按「${key==='contact'?'主页链接':'达人昵称'}」匹配，系统自动判断更新或新增。</div>
+  const s=rows[0]; const st=window.__impStats||{};
+  $('imp-result').innerHTML=`<div class="panel" style="background:#f7f9fc"><div style="font-size:13.5px;line-height:1.9">共读取 <b>${st.raw||rows.length}</b> 行 → 有效 <b>${rows.length}</b> 行，按「${key==='contact'?'主页链接':'达人昵称'}」唯一匹配，系统自动判断更新或新增。</div>
+    ${(st.skipped||st.dup)?`<div style="font-size:12.5px;color:#b45309;margin-top:4px">⚠️ 已自动清洗：跳过 <b>${st.skipped||0}</b> 行空白（无昵称且无链接）${st.dup?`，合并 <b>${st.dup}</b> 行表内重复（同一${key==='contact'?'链接':'昵称'}保留最新）`:''}</div>`:''}
     <div style="font-size:12px;color:var(--ink3);margin-top:6px">首行示例：昵称=${esc(s.nickname||'—')}｜平台=${esc(s.platform||'—')}｜粉丝=${esc(s.follower_count||'—')}｜类目=${esc(s.category||'—')}</div>
     <button class="btn" id="imp-go" style="margin-top:12px" onclick="impExecute()">✅ 确认导入</button></div>`;
 }
